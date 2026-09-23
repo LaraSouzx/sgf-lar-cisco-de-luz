@@ -21,6 +21,17 @@ function renderResetPassword() {
 describe('ResetPassword', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.location.hash = ''
+  })
+
+  it('mostra aviso de link inválido/expirado e não exibe o formulário', () => {
+    window.location.hash =
+      '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired'
+
+    renderResetPassword()
+
+    expect(screen.getByText(/link de redefinição expirou ou já foi usado/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nova senha')).not.toBeInTheDocument()
   })
 
   it('redireciona para / após redefinir a senha com sucesso', async () => {

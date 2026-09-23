@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { useResetPassword } from '../hooks/useResetPassword'
+
+function readLinkError() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  return Boolean(params.get('error'))
+}
 
 export function ResetPassword() {
   const {
@@ -15,6 +20,7 @@ export function ResetPassword() {
     submit,
   } = useResetPassword()
   const [showPassword, setShowPassword] = useState(false)
+  const [hasLinkError] = useState(readLinkError)
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -23,6 +29,30 @@ export function ResetPassword() {
 
   if (isSubmitted) {
     return <Navigate to="/" replace />
+  }
+
+  if (hasLinkError) {
+    return (
+      <AuthLayout>
+        <div className="flex w-full max-w-sm flex-col gap-5.5">
+          <h2 className="m-0 mb-1.5 text-center text-4xl font-semibold tracking-[-0.02em] text-gray-900">
+            Link inválido
+          </h2>
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700"
+          >
+            Esse link de redefinição expirou ou já foi usado. Solicite um novo para continuar.
+          </p>
+          <Link
+            to="/esqueci-senha"
+            className="mt-1 flex h-13.5 items-center justify-center rounded-[14px] bg-[#1f45d6] text-[17px] font-bold text-white hover:bg-[#1532a6]"
+          >
+            Solicitar novo link
+          </Link>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (
