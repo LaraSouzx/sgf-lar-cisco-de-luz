@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useCategorias } from '../hooks/useCategorias'
 import type { Categoria } from '../types/categoria'
 
@@ -20,6 +21,7 @@ function LinhaCategoria({
 }) {
   const [editando, setEditando] = useState(false)
   const [nome, setNome] = useState(categoria.nome)
+  const [confirmando, setConfirmando] = useState(false)
 
   async function salvar(event: FormEvent) {
     event.preventDefault()
@@ -31,10 +33,9 @@ function LinhaCategoria({
     setEditando(false)
   }
 
-  function desativar() {
-    if (window.confirm(`Desativar a categoria "${categoria.nome}"? Ela deixa de aparecer em novos lançamentos.`)) {
-      onDesativar(categoria.id)
-    }
+  function confirmarDesativacao() {
+    setConfirmando(false)
+    onDesativar(categoria.id)
   }
 
   return (
@@ -67,7 +68,7 @@ function LinhaCategoria({
               <button type="button" onClick={() => setEditando(true)} className={`${classeBotao} text-[#141a14]`}>
                 Editar
               </button>
-              <button type="button" onClick={desativar} className={`${classeBotao} text-[#b3261e]`}>
+              <button type="button" onClick={() => setConfirmando(true)} className={`${classeBotao} text-[#b3261e]`}>
                 Desativar
               </button>
             </>
@@ -75,6 +76,15 @@ function LinhaCategoria({
             <span className="text-xs text-[#8b968a]">Desativada</span>
           )}
         </>
+      )}
+      {confirmando && (
+        <ConfirmDialog
+          titulo={`Desativar "${categoria.nome}"?`}
+          mensagem="Ela deixa de aparecer em novos lançamentos, mas continua nos lançamentos antigos."
+          textoConfirmar="Desativar"
+          onConfirmar={confirmarDesativacao}
+          onCancelar={() => setConfirmando(false)}
+        />
       )}
     </li>
   )
