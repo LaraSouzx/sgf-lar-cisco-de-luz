@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import { Categorias } from './pages/Categorias'
 import { Dashboard } from './pages/Dashboard'
 import { ForgotPassword } from './pages/ForgotPassword'
+import { Lancamentos } from './pages/Lancamentos'
 import { Login } from './pages/Login'
 import { ResetPassword } from './pages/ResetPassword'
 
@@ -17,6 +18,7 @@ function App() {
           <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/categorias" element={<Categorias />} />
           </Route>
         </Routes>

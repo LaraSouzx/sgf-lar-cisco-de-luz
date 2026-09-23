@@ -44,7 +44,7 @@ export function ConfirmDialog({ titulo, mensagem, textoConfirmar, onConfirmar, o
             onClick={onCancelar}
             className="h-11 rounded-xl border border-[#dfe6db] bg-white px-4 text-sm font-semibold text-[#141a14]"
           >
-            Cancelar
+            Voltar
           </button>
           <button
             type="button"

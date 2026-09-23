@@ -1,14 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { classeBotao, classeCampo } from '../components/estilos'
 import { useCategorias } from '../hooks/useCategorias'
 import type { Categoria } from '../types/categoria'
 
 const ROTULO_TIPO: Record<Categoria['tipo'], string> = { entrada: 'Entrada', saida: 'Saída' }
 
-const classeCampo =
-  'h-11 rounded-xl border border-[#dfe6db] bg-white px-3.5 text-sm focus:outline-2 focus:outline-[#141a14]'
-const classeBotao = 'h-11 rounded-xl px-4 text-sm font-semibold'
 
 function LinhaCategoria({
   categoria,
