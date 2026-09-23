@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import { Categorias } from './pages/Categorias'
 import { Dashboard } from './pages/Dashboard'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { Login } from './pages/Login'
@@ -16,6 +17,7 @@ function App() {
           <Route path="/redefinir-senha" element={<ResetPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/categorias" element={<Categorias />} />
           </Route>
         </Routes>
       </AuthProvider>

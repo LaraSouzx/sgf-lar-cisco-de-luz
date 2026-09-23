@@ -68,7 +68,7 @@ const iconMenu = (
 const itensPrincipais: NavItem[] = [
   { label: 'Visão geral', icon: iconVisaoGeral, to: '/' },
   { label: 'Lançamentos', icon: iconLancamentos },
-  { label: 'Categorias', icon: iconCategorias },
+  { label: 'Categorias', icon: iconCategorias, to: '/categorias' },
   { label: 'Doadores', icon: iconDoadores },
   { label: 'Relatórios', icon: iconRelatorios },
 ]
