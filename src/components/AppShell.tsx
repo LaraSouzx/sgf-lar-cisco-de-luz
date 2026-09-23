@@ -170,6 +170,32 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="text-sm text-[#4f5c4c]">Este é o resumo das finanças do Lar hoje</div>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled
+                title="Ainda não disponível"
+                aria-label="Buscar lançamento"
+                className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-[#dfe6db] bg-white opacity-70"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141a14" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                disabled
+                title="Ainda não disponível"
+                aria-label="Avisos"
+                className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-[#dfe6db] bg-white opacity-70"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141a14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" />
+                  <path d="M10 21h4" />
+                </svg>
+              </button>
+            </div>
           </header>
 
           <div className="flex-1 bg-[#e9eee6] p-6 md:p-8">{children}</div>
