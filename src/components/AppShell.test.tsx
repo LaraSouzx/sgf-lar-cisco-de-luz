@@ -51,4 +51,19 @@ describe('AppShell', () => {
 
     expect(authService.signOut).toHaveBeenCalledOnce()
   })
+
+  it('recolhe e reabre o menu lateral ao clicar no botão de alternância', async () => {
+    const user = userEvent.setup()
+    renderAppShell()
+
+    const botaoMenu = screen.getByRole('button', { name: 'Fechar menu lateral' })
+    expect(botaoMenu).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(botaoMenu)
+
+    expect(screen.getByRole('button', { name: 'Abrir menu lateral' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
+  })
 })

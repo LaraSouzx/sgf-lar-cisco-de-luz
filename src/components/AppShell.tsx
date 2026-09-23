@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext'
 import { signOut } from '../services/authService'
@@ -58,6 +58,12 @@ const iconSair = (
     <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3" />
   </svg>
 )
+const iconMenu = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16" />
+  </svg>
+)
 
 const itensPrincipais: NavItem[] = [
   { label: 'Visão geral', icon: iconVisaoGeral, to: '/' },
@@ -72,20 +78,21 @@ const itensOutros: NavItem[] = [
   { label: 'Ajuda', icon: iconAjuda },
 ]
 
-function ItemMenu({ item }: { item: NavItem }) {
+function ItemMenu({ item, menuAberto }: { item: NavItem; menuAberto: boolean }) {
   const location = useLocation()
-  const classeBase =
-    'flex items-center gap-3 h-11 px-3.5 rounded-[10px] text-sm font-medium no-underline'
+  const classeBase = `flex items-center gap-3 h-11 rounded-[10px] text-sm font-medium no-underline ${
+    menuAberto ? 'px-3.5' : 'w-11 justify-center px-0'
+  }`
 
   if (!item.to) {
     return (
       <span
         aria-disabled="true"
+        title={menuAberto ? 'Ainda não disponível' : item.label}
         className={`${classeBase} text-[#8b968a] cursor-not-allowed`}
-        title="Ainda não disponível"
       >
         {item.icon}
-        {item.label}
+        {menuAberto && item.label}
       </span>
     )
   }
@@ -94,9 +101,14 @@ function ItemMenu({ item }: { item: NavItem }) {
   const classeAtivo = ativo ? 'bg-[#141a14] text-white font-semibold' : 'text-[#3c463a] hover:bg-[#e9eee6]'
 
   return (
-    <Link to={item.to} aria-current={ativo ? 'page' : undefined} className={`${classeBase} ${classeAtivo}`}>
+    <Link
+      to={item.to}
+      aria-current={ativo ? 'page' : undefined}
+      title={menuAberto ? undefined : item.label}
+      className={`${classeBase} ${classeAtivo}`}
+    >
       {item.icon}
-      {item.label}
+      {menuAberto && item.label}
     </Link>
   )
 }
@@ -112,52 +124,75 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { session } = useAuthContext()
   const nome = nomeExibicao(session?.user.email, session?.user.user_metadata?.nome_completo)
   const inicial = nome.charAt(0).toUpperCase()
+  const [menuAberto, setMenuAberto] = useState(true)
 
   return (
     <div className="flex min-h-screen bg-[#f4f7f1]">
       <div className="flex w-full flex-col md:flex-row">
         <nav
           aria-label="Menu principal"
-          className="hidden w-[260px] shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] p-[18px_18px_28px] md:flex"
+          className={`hidden shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] py-4.5 transition-[width] duration-200 md:flex ${
+            menuAberto ? 'w-65 px-4.5' : 'w-19 items-center px-2'
+          }`}
         >
-          <div className="flex items-center gap-2.5 px-2 pb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#141a14]">
+          <div className={`flex items-center gap-2.5 pb-5 ${menuAberto ? 'px-2' : 'flex-col gap-3'}`}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-[#141a14]">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9fe39a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 21s-7-4.5-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.5-7 11-7 11z" />
               </svg>
             </div>
-            <div className="flex flex-col">
-              <div className="text-base font-bold tracking-[-0.01em]">Cisco de Luz</div>
-              <div className="text-xs text-[#5d6a5a]">Gestão financeira</div>
-            </div>
+            {menuAberto && (
+              <div className="flex flex-col">
+                <div className="text-base font-bold tracking-[-0.01em]">Cisco de Luz</div>
+                <div className="text-xs text-[#5d6a5a]">Gestão financeira</div>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setMenuAberto((atual) => !atual)}
+              aria-label={menuAberto ? 'Fechar menu lateral' : 'Abrir menu lateral'}
+              aria-expanded={menuAberto}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#dfe6db] bg-white text-[#141a14] ${
+                menuAberto ? 'ml-auto' : ''
+              }`}
+            >
+              {iconMenu}
+            </button>
           </div>
 
-          <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[#5d6a5a]">
-            PRINCIPAL
-          </div>
+          {menuAberto && (
+            <div className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[#5d6a5a]">
+              PRINCIPAL
+            </div>
+          )}
           {itensPrincipais.map((item) => (
-            <ItemMenu key={item.label} item={item} />
+            <ItemMenu key={item.label} item={item} menuAberto={menuAberto} />
           ))}
 
-          <div className="mx-2 my-3 h-px bg-[#e3e9df]" />
-          <div className="px-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[#5d6a5a]">
-            OUTROS
-          </div>
+          <div className={`my-3 h-px bg-[#e3e9df] ${menuAberto ? 'mx-2' : 'w-full'}`} />
+          {menuAberto && (
+            <div className="px-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-[#5d6a5a]">
+              OUTROS
+            </div>
+          )}
           {itensOutros.map((item) => (
-            <ItemMenu key={item.label} item={item} />
+            <ItemMenu key={item.label} item={item} menuAberto={menuAberto} />
           ))}
           <button
             type="button"
             onClick={() => signOut()}
-            className="flex h-11 items-center gap-3 rounded-[10px] px-3.5 text-left text-sm font-medium text-[#3c463a] hover:bg-[#e9eee6]"
+            title={menuAberto ? undefined : 'Sair'}
+            className={`flex h-11 items-center gap-3 rounded-[10px] text-left text-sm font-medium text-[#3c463a] hover:bg-[#e9eee6] ${
+              menuAberto ? 'px-3.5' : 'w-11 justify-center px-0'
+            }`}
           >
             {iconSair}
-            Sair
+            {menuAberto && 'Sair'}
           </button>
         </nav>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-[88px] shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
+          <header className="flex h-22 shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
             <div className="flex items-center gap-3.5">
               <div
                 aria-hidden="true"
