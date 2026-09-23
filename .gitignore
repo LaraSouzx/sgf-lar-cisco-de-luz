@@ -1,0 +1,18 @@
+# Segredos
+.env
+.env.*
+!.env.example
+
+# Dependências e build
+node_modules/
+dist/
+build/
+
+# Contexto e docs internas (não vão para o repositório público)
+docs/
+CLAUDE.md
+CONTEXT.md
+
+# Editor / OS
+.vscode/
+.DS_Store
