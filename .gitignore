@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Cache local do Supabase CLI (vínculo com o projeto)
+supabase/.temp/
+
 # Dependências e build
 node_modules/
 dist/
