@@ -85,7 +85,11 @@ export function LancamentoForm({ categorias, lancamentoEmEdicao, onSubmit, onCan
         onChange={(event) => atualizar('categoriaId', event.target.value)}
         className={`${classeCampo} sm:col-span-2`}
       >
-        <option value="">Escolha a categoria</option>
+        <option value="">
+          {opcoesCategoria.length === 0
+            ? `Nenhuma categoria de ${formulario.tipo === 'entrada' ? 'entrada' : 'saída'} ativa`
+            : 'Escolha a categoria'}
+        </option>
         {opcoesCategoria.map((categoria) => (
           <option key={categoria.id} value={categoria.id}>
             {categoria.nome}
