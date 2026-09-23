@@ -49,3 +49,7 @@ export function editarCategoria(id: string, campos: Pick<Categoria, 'nome'>) {
 export function desativarCategoria(id: string) {
   return atualizarCategoria(id, { ativa: false })
 }
+
+export function reativarCategoria(id: string) {
+  return atualizarCategoria(id, { ativa: true })
+}

@@ -4,6 +4,7 @@ import {
   desativarCategoria,
   editarCategoria,
   listarCategorias,
+  reativarCategoria,
 } from './categoriaService'
 
 const { order, insert, eq, update, from } = vi.hoisted(() => {
@@ -91,6 +92,17 @@ describe('categoriaService', () => {
       await expect(editarCategoria('c1', { nome: 'Doação' })).rejects.toThrow(
         'Já existe uma categoria com esse nome',
       )
+    })
+  })
+
+  describe('reativarCategoria', () => {
+    it('marca a categoria como ativa novamente', async () => {
+      eq.mockResolvedValue({ error: null })
+
+      await reativarCategoria('c1')
+
+      expect(update).toHaveBeenCalledWith({ ativa: true })
+      expect(eq).toHaveBeenCalledWith('id', 'c1')
     })
   })
 

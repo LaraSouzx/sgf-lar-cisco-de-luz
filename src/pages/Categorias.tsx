@@ -14,10 +14,12 @@ function LinhaCategoria({
   categoria,
   onEditar,
   onDesativar,
+  onReativar,
 }: {
   categoria: Categoria
   onEditar: (id: string, nome: string) => Promise<boolean>
   onDesativar: (id: string) => void
+  onReativar: (id: string) => void
 }) {
   const [editando, setEditando] = useState(false)
   const [nome, setNome] = useState(categoria.nome)
@@ -73,7 +75,12 @@ function LinhaCategoria({
               </button>
             </>
           ) : (
-            <span className="text-xs text-[#8b968a]">Desativada</span>
+            <>
+              <span className="text-xs text-[#8b968a]">Desativada</span>
+              <button type="button" onClick={() => onReativar(categoria.id)} className={`${classeBotao} text-[#2f7d34]`}>
+                Reativar
+              </button>
+            </>
           )}
         </>
       )}
@@ -91,7 +98,7 @@ function LinhaCategoria({
 }
 
 export function Categorias() {
-  const { categorias, isLoading, error, criar, editar, desativar } = useCategorias()
+  const { categorias, isLoading, error, criar, editar, desativar, reativar } = useCategorias()
   const [nome, setNome] = useState('')
   const [tipo, setTipo] = useState<Categoria['tipo']>('saida')
 
@@ -142,7 +149,13 @@ export function Categorias() {
           )}
           <ul className="m-0 list-none p-0">
             {categorias.map((categoria) => (
-              <LinhaCategoria key={categoria.id} categoria={categoria} onEditar={editar} onDesativar={desativar} />
+              <LinhaCategoria
+                key={categoria.id}
+                categoria={categoria}
+                onEditar={editar}
+                onDesativar={desativar}
+                onReativar={reativar}
+              />
             ))}
           </ul>
         </section>

@@ -167,6 +167,20 @@ describe('useCategorias', () => {
       expect(result.current.categorias.find((categoria) => categoria.id === 'c1')?.ativa).toBe(false)
     })
 
+    it('reativa uma categoria desativada e recarrega a lista', async () => {
+      const desativada = { ...aluguel, ativa: false }
+      const { result } = await renderCarregado([desativada, doacao])
+      vi.mocked(categoriaService.reativarCategoria).mockResolvedValue(undefined)
+      vi.mocked(categoriaService.listarCategorias).mockResolvedValue([aluguel, doacao])
+
+      await act(async () => {
+        await result.current.reativar('c1')
+      })
+
+      expect(categoriaService.reativarCategoria).toHaveBeenCalledWith('c1')
+      expect(result.current.categorias.find((categoria) => categoria.id === 'c1')?.ativa).toBe(true)
+    })
+
     it('expõe a mensagem do service quando desativar falha', async () => {
       const { result } = await renderCarregado()
       vi.mocked(categoriaService.desativarCategoria).mockRejectedValue(
