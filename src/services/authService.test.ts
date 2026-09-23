@@ -144,5 +144,19 @@ describe('authService', () => {
         'Não foi possível redefinir a senha',
       )
     })
+
+    it('lança mensagem específica quando a nova senha é igual à atual', async () => {
+      vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+        data: { user: null },
+        error: {
+          message: 'New password should be different from the old password.',
+          code: 'same_password',
+        },
+      } as never)
+
+      await expect(updatePassword('novaSenha123')).rejects.toThrow(
+        'A nova senha deve ser diferente da senha atual',
+      )
+    })
   })
 })

@@ -30,6 +30,9 @@ export async function updatePassword(newPassword: string) {
   const { error } = await supabase.auth.updateUser({ password: newPassword })
 
   if (error) {
+    if (error.code === 'same_password') {
+      throw new Error('A nova senha deve ser diferente da senha atual')
+    }
     throw new Error('Não foi possível redefinir a senha')
   }
 }
