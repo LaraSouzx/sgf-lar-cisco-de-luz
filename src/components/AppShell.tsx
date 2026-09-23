@@ -114,8 +114,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const inicial = nome.charAt(0).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-[#d9e0d5] p-4 md:p-8">
-      <div className="flex w-full flex-col overflow-hidden rounded-[28px] bg-[#f4f7f1] md:flex-row">
+    <div className="flex min-h-screen bg-[#f4f7f1]">
+      <div className="flex w-full flex-col md:flex-row">
         <nav
           aria-label="Menu principal"
           className="hidden w-[260px] shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] p-[18px_18px_28px] md:flex"
