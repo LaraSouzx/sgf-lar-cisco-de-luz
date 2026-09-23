@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabaseClient'
-import type { Lancamento } from '../types/lancamento'
+import type {
+  EdicaoLancamento,
+  Lancamento,
+  NovoLancamento,
+  TipoLancamento,
+} from '../types/lancamento'
 
 type LancamentoRow = {
   id: string
@@ -33,13 +38,20 @@ function mapLancamento(row: LancamentoRow): Lancamento {
   }
 }
 
-export async function listLancamentos(filtro: { dataInicio?: string; dataFim?: string }) {
+export async function listLancamentos(filtro: {
+  dataInicio?: string
+  dataFim?: string
+  tipo?: TipoLancamento
+}) {
   let query = supabase
     .from('lancamentos')
     .select(
       'id, data, valor, tipo, categoria_id, categorias(nome), usuario_id, doador_id, doadores(nome), descricao, comprovante_url, cancelado',
     )
 
+  if (filtro.tipo) {
+    query = query.eq('tipo', filtro.tipo)
+  }
   if (filtro.dataInicio) {
     query = query.gte('data', filtro.dataInicio)
   }
@@ -54,4 +66,37 @@ export async function listLancamentos(filtro: { dataInicio?: string; dataFim?: s
   }
 
   return (data ?? []).map((row) => mapLancamento(row as unknown as LancamentoRow))
+}
+
+// usuario_id não é enviado: o banco preenche com auth.uid(), então ninguém lança em nome de outra pessoa.
+export async function criarLancamento(lancamento: NovoLancamento) {
+  const { categoriaId, ...demaisCampos } = lancamento
+  const { error } = await supabase
+    .from('lancamentos')
+    .insert({ ...demaisCampos, categoria_id: categoriaId })
+
+  if (error) {
+    throw new Error('Não foi possível salvar o lançamento')
+  }
+}
+
+export async function editarLancamento(id: string, lancamento: EdicaoLancamento) {
+  const { categoriaId, ...demaisCampos } = lancamento
+  const { error } = await supabase
+    .from('lancamentos')
+    .update({ ...demaisCampos, categoria_id: categoriaId })
+    .eq('id', id)
+
+  if (error) {
+    throw new Error('Não foi possível salvar o lançamento')
+  }
+}
+
+// Lançamento nunca é excluído (histórico da prestação de contas): por isso não existe função de exclusão.
+export async function cancelarLancamento(id: string) {
+  const { error } = await supabase.from('lancamentos').update({ cancelado: true }).eq('id', id)
+
+  if (error) {
+    throw new Error('Não foi possível cancelar o lançamento')
+  }
 }
