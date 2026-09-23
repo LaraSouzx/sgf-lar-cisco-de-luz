@@ -74,8 +74,12 @@ function LinhaLancamento({
 export function Lancamentos() {
   const [parametros, setParametros] = useSearchParams()
   const filtro = lerFiltro(parametros)
-  const { categorias } = useCategorias()
-  const { lancamentos, isLoading, error, criar, editar, cancelar } = useLancamentos(filtro, categorias)
+  const { categorias, error: erroCategorias } = useCategorias()
+  const { lancamentos, isLoading, error: erroLancamentos, criar, editar, cancelar } = useLancamentos(
+    filtro,
+    categorias,
+  )
+  const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
   const [aCancelar, setACancelar] = useState<Lancamento>()
 
