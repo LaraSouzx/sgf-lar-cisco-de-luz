@@ -109,7 +109,7 @@ export function Categorias() {
 
   return (
     <AppShell>
-      <div className="mx-auto flex max-w-3xl flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <section className="rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5">
           <h2 className="m-0 mb-3.5 text-base font-semibold">Nova categoria</h2>
           <form onSubmit={handleSubmit} className="flex flex-wrap gap-2.5">
