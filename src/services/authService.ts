@@ -18,6 +18,22 @@ export async function signOut() {
   await supabase.auth.signOut()
 }
 
+export async function resetPasswordForEmail(email: string, redirectTo: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+
+  if (error) {
+    throw new Error('Não foi possível enviar o e-mail de redefinição')
+  }
+}
+
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+  if (error) {
+    throw new Error('Não foi possível redefinir a senha')
+  }
+}
+
 export function onAuthStateChange(
   callback: (event: AuthChangeEvent, session: Session | null) => void,
 ) {

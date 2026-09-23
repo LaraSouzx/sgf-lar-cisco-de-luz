@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-import { getSession, onAuthStateChange, signInWithPassword, signOut } from './authService'
+import {
+  getSession,
+  onAuthStateChange,
+  resetPasswordForEmail,
+  signInWithPassword,
+  signOut,
+  updatePassword,
+} from './authService'
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
@@ -10,6 +17,8 @@ vi.mock('../lib/supabaseClient', () => ({
       getSession: vi.fn(),
       signOut: vi.fn(),
       onAuthStateChange: vi.fn(),
+      resetPasswordForEmail: vi.fn(),
+      updateUser: vi.fn(),
     },
   },
 }))
@@ -85,6 +94,55 @@ describe('authService', () => {
       expect(supabase.auth.onAuthStateChange).toHaveBeenCalledWith(callback)
       result.unsubscribe()
       expect(unsubscribe).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('resetPasswordForEmail', () => {
+    it('pede ao Supabase para enviar o e-mail de redefinição com o redirect informado', async () => {
+      vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({
+        data: {},
+        error: null,
+      } as never)
+
+      await resetPasswordForEmail('lara@example.com', 'https://app.exemplo.com/redefinir-senha')
+
+      expect(supabase.auth.resetPasswordForEmail).toHaveBeenCalledWith('lara@example.com', {
+        redirectTo: 'https://app.exemplo.com/redefinir-senha',
+      })
+    })
+
+    it('lança mensagem genérica quando o Supabase retorna erro', async () => {
+      vi.mocked(supabase.auth.resetPasswordForEmail).mockResolvedValue({
+        data: {},
+        error: { message: 'Rate limit exceeded' },
+      } as never)
+
+      await expect(
+        resetPasswordForEmail('lara@example.com', 'https://app.exemplo.com/redefinir-senha'),
+      ).rejects.toThrow('Não foi possível enviar o e-mail de redefinição')
+    })
+  })
+
+  describe('updatePassword', () => {
+    it('não lança erro quando o Supabase atualiza a senha com sucesso', async () => {
+      vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+        data: { user: null },
+        error: null,
+      } as never)
+
+      await expect(updatePassword('novaSenha123')).resolves.toBeUndefined()
+      expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: 'novaSenha123' })
+    })
+
+    it('lança mensagem genérica quando o Supabase retorna erro', async () => {
+      vi.mocked(supabase.auth.updateUser).mockResolvedValue({
+        data: { user: null },
+        error: { message: 'Auth session missing' },
+      } as never)
+
+      await expect(updatePassword('novaSenha123')).rejects.toThrow(
+        'Não foi possível redefinir a senha',
+      )
     })
   })
 })
