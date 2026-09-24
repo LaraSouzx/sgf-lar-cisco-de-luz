@@ -64,6 +64,14 @@ describe('lancamentosService', () => {
       expect(eq).not.toHaveBeenCalled()
     })
 
+    it('filtra pelo doador quando informado', async () => {
+      order.mockResolvedValue({ data: [], error: null })
+
+      await listLancamentos({ doadorId: 'd1' })
+
+      expect(eq).toHaveBeenCalledWith('doador_id', 'd1')
+    })
+
     it('converte as linhas do banco para o formato do domínio', async () => {
       order.mockResolvedValue({
         data: [

@@ -42,6 +42,7 @@ export async function listLancamentos(filtro: {
   dataInicio?: string
   dataFim?: string
   tipo?: TipoLancamento
+  doadorId?: string
 }) {
   let query = supabase
     .from('lancamentos')
@@ -51,6 +52,9 @@ export async function listLancamentos(filtro: {
 
   if (filtro.tipo) {
     query = query.eq('tipo', filtro.tipo)
+  }
+  if (filtro.doadorId) {
+    query = query.eq('doador_id', filtro.doadorId)
   }
   if (filtro.dataInicio) {
     query = query.gte('data', filtro.dataInicio)
