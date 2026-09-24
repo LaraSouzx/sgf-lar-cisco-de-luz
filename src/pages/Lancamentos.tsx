@@ -1,16 +1,17 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { classeBotao, classeCampo } from '../components/estilos'
 import { LancamentoForm } from '../components/LancamentoForm'
 import { useCategorias } from '../hooks/useCategorias'
 import { useDoadores } from '../hooks/useDoadores'
+import { formatarData, formatarValorEmReais } from '../hooks/formatacao'
+import { useFiltrosDaUrl } from '../hooks/useFiltrosDaUrl'
 import { useLancamentos, type FiltroLancamentos } from '../hooks/useLancamentos'
 import type { FormularioLancamento } from '../hooks/validarLancamento'
 import type { Lancamento } from '../types/lancamento'
 
-const FORMATO_MES = /^\d{4}-\d{2}$/
+const FORMATO_MES = /^\d{4}-(0[1-9]|1[0-2])$/
 
 // Filtros vêm da URL (/lancamentos?tipo=entrada&mes=2026-09) para poderem ser linkados de outras telas.
 function lerFiltro(parametros: URLSearchParams): FiltroLancamentos {
@@ -20,16 +21,6 @@ function lerFiltro(parametros: URLSearchParams): FiltroLancamentos {
     tipo: tipo === 'entrada' || tipo === 'saida' ? tipo : undefined,
     mes: FORMATO_MES.test(mes) ? mes : undefined,
   }
-}
-
-function formatarValor(valor: number) {
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-// Separa a string em vez de usar Date, que deslocaria o dia por causa do fuso horário.
-function formatarData(data: string) {
-  const [ano, mes, dia] = data.split('-')
-  return `${dia}/${mes}/${ano}`
 }
 
 function LinhaLancamento({
@@ -56,7 +47,7 @@ function LinhaLancamento({
         </span>
       </div>
       <span className={`text-sm font-bold ${lancamento.cancelado ? 'text-[#8b968a] line-through' : corValor}`}>
-        {entrada ? '+' : '−'} {formatarValor(lancamento.valor)}
+        {entrada ? '+' : '−'} {formatarValorEmReais(lancamento.valor)}
       </span>
       {lancamento.cancelado ? (
         <span className="w-44 text-right text-xs text-[#8b968a]">Cancelado</span>
@@ -75,7 +66,7 @@ function LinhaLancamento({
 }
 
 export function Lancamentos() {
-  const [parametros, setParametros] = useSearchParams()
+  const { parametros, atualizarFiltro } = useFiltrosDaUrl()
   const filtro = lerFiltro(parametros)
   const { categorias, error: erroCategorias } = useCategorias()
   const { doadores } = useDoadores()
@@ -86,13 +77,6 @@ export function Lancamentos() {
   const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
   const [aCancelar, setACancelar] = useState<Lancamento>()
-
-  function atualizarFiltro(chave: 'tipo' | 'mes', valor: string) {
-    const proximos = new URLSearchParams(parametros)
-    if (valor) proximos.set(chave, valor)
-    else proximos.delete(chave)
-    setParametros(proximos)
-  }
 
   async function salvar(formulario: FormularioLancamento) {
     const salvou = emEdicao ? await editar(emEdicao.id, formulario) : await criar(formulario)
