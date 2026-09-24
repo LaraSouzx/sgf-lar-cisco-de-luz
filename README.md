@@ -13,6 +13,10 @@ Este projeto entrega um site simples e responsivo para registrar entradas e saí
 - **Frontend:** React + TypeScript
 - **Backend:** Supabase (Auth, Postgres, Storage) — sem servidor próprio
 
+## Como publicar
+
+Passo a passo de publicação (Vercel + Supabase) em [`DEPLOY.md`](DEPLOY.md).
+
 ## Escopo do MVP
 
 **Incluso:**
