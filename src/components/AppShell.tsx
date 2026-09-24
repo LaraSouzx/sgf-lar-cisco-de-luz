@@ -70,7 +70,7 @@ const itensPrincipais: NavItem[] = [
   { label: 'Lançamentos', icon: iconLancamentos, to: '/lancamentos' },
   { label: 'Categorias', icon: iconCategorias, to: '/categorias' },
   { label: 'Doadores', icon: iconDoadores, to: '/doadores' },
-  { label: 'Relatórios', icon: iconRelatorios },
+  { label: 'Relatórios', icon: iconRelatorios, to: '/relatorios' },
 ]
 
 const itensOutros: NavItem[] = [
@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex w-full flex-col md:flex-row">
         <nav
           aria-label="Menu principal"
-          className={`hidden shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] py-4.5 transition-[width] duration-200 md:flex ${
+          className={`hidden shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] py-4.5 transition-[width] duration-200 md:flex print:hidden ${
             menuAberto ? 'w-65 px-4.5' : 'w-19 items-center px-2'
           }`}
         >
@@ -192,7 +192,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-22 shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
+          <header className="flex h-22 shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8 print:hidden">
             <div className="flex items-center gap-3.5">
               <div
                 aria-hidden="true"
@@ -233,7 +233,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <div className="flex-1 bg-[#e9eee6] p-6 md:p-8">{children}</div>
+          <div className="flex-1 bg-[#e9eee6] p-6 md:p-8 print:bg-white print:p-0">{children}</div>
         </main>
       </div>
     </div>

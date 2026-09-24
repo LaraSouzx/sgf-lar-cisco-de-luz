@@ -30,9 +30,9 @@ describe('AppShell', () => {
   it('links de telas que ainda não existem não são navegáveis', () => {
     renderAppShell()
 
-    const relatorios = screen.getByText('Relatórios')
-    expect(relatorios.tagName).toBe('SPAN')
-    expect(relatorios).toHaveAttribute('aria-disabled', 'true')
+    const configuracoes = screen.getByText('Configurações')
+    expect(configuracoes.tagName).toBe('SPAN')
+    expect(configuracoes).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('"Visão geral" navega para /', () => {

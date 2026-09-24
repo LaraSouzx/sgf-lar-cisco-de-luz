@@ -7,6 +7,7 @@ import { Doadores } from './pages/Doadores'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { Lancamentos } from './pages/Lancamentos'
 import { Login } from './pages/Login'
+import { Relatorios } from './pages/Relatorios'
 import { ResetPassword } from './pages/ResetPassword'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/categorias" element={<Categorias />} />
             <Route path="/doadores" element={<Doadores />} />
+            <Route path="/relatorios" element={<Relatorios />} />
           </Route>
         </Routes>
       </AuthProvider>

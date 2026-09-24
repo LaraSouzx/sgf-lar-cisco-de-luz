@@ -8,21 +8,22 @@ import {
 } from './calcularRelatorio'
 import { intervaloDoPeriodo } from './periodo'
 
+// O resultado guarda de qual pedido (período + doador) ele é.
+type Resultado = {
+  chave: string
+  relatorio: Relatorio | null
+  relatorioDoador: RelatorioDoador | null
+  error: string | null
+}
+
 export function useRelatorio(periodo: string, doadorId?: string) {
-  const [relatorio, setRelatorio] = useState<Relatorio | null>(null)
-  const [relatorioDoador, setRelatorioDoador] = useState<RelatorioDoador | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<Resultado | null>(null)
+  const chave = `${periodo}|${doadorId ?? ''}`
 
   useEffect(() => {
     // Trocar período ou doador rápido pode fazer uma resposta antiga chegar depois da nova.
     let atual = true
     const { dataInicio, dataFim } = intervaloDoPeriodo(periodo)
-
-    setIsLoading(true)
-    setError(null)
-    setRelatorio(null)
-    setRelatorioDoador(null)
 
     // O relatório geral precisa do histórico até o fim do período (saldo anterior);
     // o de um doador só precisa das doações dentro do período.
@@ -33,20 +34,31 @@ export function useRelatorio(periodo: string, doadorId?: string) {
     busca
       .then((lancamentos) => {
         if (!atual) return
-        if (doadorId) setRelatorioDoador(calcularRelatorioDoador(lancamentos, periodo))
-        else setRelatorio(calcularRelatorio(lancamentos, periodo))
+        setResultado({
+          chave,
+          relatorio: doadorId ? null : calcularRelatorio(lancamentos, periodo),
+          relatorioDoador: doadorId ? calcularRelatorioDoador(lancamentos, periodo) : null,
+          error: null,
+        })
       })
       .catch((err) => {
-        if (atual) setError(err instanceof Error ? err.message : 'Erro ao carregar o relatório')
-      })
-      .finally(() => {
-        if (atual) setIsLoading(false)
+        if (!atual) return
+        const error = err instanceof Error ? err.message : 'Erro ao carregar o relatório'
+        setResultado({ chave, relatorio: null, relatorioDoador: null, error })
       })
 
     return () => {
       atual = false
     }
-  }, [periodo, doadorId])
+  }, [periodo, doadorId, chave])
 
-  return { relatorio, relatorioDoador, isLoading, error }
+  // Enquanto o resultado guardado for de outro pedido, está carregando (sem mostrar dados do período anterior).
+  const pronto = resultado?.chave === chave ? resultado : null
+
+  return {
+    relatorio: pronto?.relatorio ?? null,
+    relatorioDoador: pronto?.relatorioDoador ?? null,
+    isLoading: !pronto,
+    error: pronto?.error ?? null,
+  }
 }
