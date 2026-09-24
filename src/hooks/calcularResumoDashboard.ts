@@ -1,11 +1,7 @@
 import type { Lancamento } from '../types/lancamento'
+import { agruparPorCategoria, ordenarPorDataDesc, type ValorPorCategoria } from './calculosFinanceiros'
 
-export type GastoPorCategoria = {
-  categoriaId: string
-  categoriaNome: string
-  valor: number
-  percentual: number
-}
+export type GastoPorCategoria = ValorPorCategoria
 
 export type ResumoDashboard = {
   saldo: number
@@ -30,10 +26,6 @@ function mesmoMes(data: string, referencia: Date) {
 
 function mesAnterior(referencia: Date) {
   return new Date(referencia.getFullYear(), referencia.getMonth() - 1, 1)
-}
-
-function ordenarPorDataDesc(lancamentos: Lancamento[]) {
-  return [...lancamentos].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0))
 }
 
 export function calcularResumoDashboard(
@@ -66,26 +58,7 @@ export function calcularResumoDashboard(
   const doacoesMes = doacoesDoMes.reduce((total, l) => total + l.valor, 0)
   const doadoresMes = new Set(doacoesDoMes.map((l) => l.doadorId)).size
 
-  const saidasPorCategoria = new Map<string, GastoPorCategoria>()
-  for (const l of doMes.filter((item) => item.tipo === 'saida')) {
-    const atual = saidasPorCategoria.get(l.categoriaId)
-    if (atual) {
-      atual.valor += l.valor
-    } else {
-      saidasPorCategoria.set(l.categoriaId, {
-        categoriaId: l.categoriaId,
-        categoriaNome: l.categoriaNome,
-        valor: l.valor,
-        percentual: 0,
-      })
-    }
-  }
-  const gastosPorCategoria = Array.from(saidasPorCategoria.values())
-    .sort((a, b) => b.valor - a.valor)
-    .map((gasto) => ({
-      ...gasto,
-      percentual: saidasMes > 0 ? Math.round((gasto.valor / saidasMes) * 100) : 0,
-    }))
+  const gastosPorCategoria = agruparPorCategoria(doMes.filter((item) => item.tipo === 'saida'))
 
   const doacoesRecentes = ordenarPorDataDesc(ativos.filter((l) => l.tipo === 'entrada' && l.doadorId)).slice(
     0,
