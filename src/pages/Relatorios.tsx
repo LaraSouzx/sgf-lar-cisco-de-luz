@@ -5,6 +5,7 @@ import type { Relatorio, RelatorioDoador } from '../hooks/calcularRelatorio'
 import type { ValorPorCategoria } from '../hooks/calculosFinanceiros'
 import { formatarData, formatarValorEmReais } from '../hooks/formatacao'
 import { gerarCsvDoacoes, gerarCsvRelatorio } from '../hooks/gerarCsvRelatorio'
+import { gerarPdfDoacoes, gerarPdfRelatorio } from '../hooks/gerarPdfRelatorio'
 import { periodoDoMesAtual, periodoValido, rotuloDoPeriodo } from '../hooks/periodo'
 import { useDoadores } from '../hooks/useDoadores'
 import { useFiltrosDaUrl } from '../hooks/useFiltrosDaUrl'
@@ -14,8 +15,8 @@ import type { Lancamento } from '../types/lancamento'
 
 const classeCartao = 'rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5'
 
-function baixarCsv(nomeArquivo: string, conteudo: string) {
-  const url = URL.createObjectURL(new Blob([conteudo], { type: 'text/csv;charset=utf-8' }))
+function baixarArquivo(nomeArquivo: string, conteudo: BlobPart, tipo: string) {
+  const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }))
   const link = document.createElement('a')
   link.href = url
   link.download = nomeArquivo
@@ -160,19 +161,30 @@ export function Relatorios() {
     if (periodoValido(novoPeriodo)) atualizarFiltro('periodo', novoPeriodo)
   }
 
-  function exportar() {
-    const contexto = { geradoEm: dataDeHoje(), usuario: session?.user.email ?? '' }
+  const contexto = { geradoEm: dataDeHoje(), usuario: session?.user.email ?? '' }
+
+  function exportarCsv() {
     if (relatorioDoador) {
-      baixarCsv(`doacoes-${periodo}.csv`, gerarCsvDoacoes(relatorioDoador, periodo, nomeDoador ?? '', contexto))
+      const csv = gerarCsvDoacoes(relatorioDoador, periodo, nomeDoador ?? '', contexto)
+      baixarArquivo(`doacoes-${periodo}.csv`, csv, 'text/csv;charset=utf-8')
     } else if (relatorio) {
-      baixarCsv(`relatorio-${periodo}.csv`, gerarCsvRelatorio(relatorio, periodo, contexto))
+      baixarArquivo(`relatorio-${periodo}.csv`, gerarCsvRelatorio(relatorio, periodo, contexto), 'text/csv;charset=utf-8')
+    }
+  }
+
+  async function exportarPdf() {
+    if (relatorioDoador) {
+      const pdf = await gerarPdfDoacoes(relatorioDoador, periodo, nomeDoador ?? '', contexto)
+      baixarArquivo(`doacoes-${periodo}.pdf`, pdf, 'application/pdf')
+    } else if (relatorio) {
+      baixarArquivo(`relatorio-${periodo}.pdf`, await gerarPdfRelatorio(relatorio, periodo, contexto), 'application/pdf')
     }
   }
 
   return (
     <AppShell>
       <div className="flex flex-col gap-5">
-        <section className={`${classeCartao} print:hidden`}>
+        <section className={classeCartao}>
           <div className="flex flex-wrap items-center gap-2.5">
             <select
               aria-label="Tipo de período"
@@ -221,7 +233,7 @@ export function Relatorios() {
             <div className="ml-auto flex gap-2.5">
               <button
                 type="button"
-                onClick={exportar}
+                onClick={exportarCsv}
                 disabled={isLoading || Boolean(error)}
                 className={`${classeBotao} border border-[#dfe6db] bg-white text-[#141a14] disabled:opacity-60`}
               >
@@ -229,11 +241,11 @@ export function Relatorios() {
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={exportarPdf}
                 disabled={isLoading || Boolean(error)}
                 className={`${classeBotao} bg-[#141a14] text-white disabled:opacity-60`}
               >
-                Imprimir / salvar PDF
+                Exportar PDF
               </button>
             </div>
           </div>
