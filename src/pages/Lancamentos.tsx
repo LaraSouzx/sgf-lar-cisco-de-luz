@@ -12,7 +12,9 @@ import { useLancamentos, type FiltroLancamentos } from '../hooks/useLancamentos'
 import type { FormularioLancamento } from '../hooks/validarLancamento'
 import type { Lancamento } from '../types/lancamento'
 
-const FORMATO_MES = /^\d{4}-(0[1-9]|1[0-2])$/
+const QUANTIDADE_INICIAL = 10
+
+const FORMATO_MES =/^\d{4}-(0[1-9]|1[0-2])$/
 
 // Filtros vêm da URL (/lancamentos?tipo=entrada&mes=2026-09) para poderem ser linkados de outras telas.
 function lerFiltro(parametros: URLSearchParams): FiltroLancamentos {
@@ -102,6 +104,9 @@ export function Lancamentos() {
   const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
   const [aCancelar, setACancelar] = useState<Lancamento>()
+  const [mostrarTodos, setMostrarTodos] = useState(false)
+  // A lista já vem do mais recente para o mais antigo, então os primeiros são os mais recentes.
+  const lancamentosVisiveis = mostrarTodos ? lancamentos : lancamentos.slice(0, QUANTIDADE_INICIAL)
 
   async function salvar(formulario: FormularioLancamento) {
     const salvou = emEdicao ? await editar(emEdicao.id, formulario) : await criar(formulario)
@@ -178,7 +183,7 @@ export function Lancamentos() {
             <p className="text-sm text-[#4f5c4c]">Nenhum lançamento encontrado.</p>
           )}
           <ul className="m-0 list-none p-0">
-            {lancamentos.map((lancamento) => (
+            {lancamentosVisiveis.map((lancamento) => (
               <LinhaLancamento
                 key={lancamento.id}
                 lancamento={lancamento}
@@ -188,6 +193,20 @@ export function Lancamentos() {
               />
             ))}
           </ul>
+          {lancamentos.length > QUANTIDADE_INICIAL && (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <span className="text-xs text-[#4f5c4c]">
+                Mostrando {lancamentosVisiveis.length} de {lancamentos.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMostrarTodos((atual) => !atual)}
+                className={`${classeBotao} border border-[#dfe6db] bg-white text-[#141a14]`}
+              >
+                {mostrarTodos ? `Mostrar só os ${QUANTIDADE_INICIAL} mais recentes` : 'Mostrar todos'}
+              </button>
+            </div>
+          )}
         </section>
       </div>
 
