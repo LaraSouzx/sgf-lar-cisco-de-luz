@@ -66,13 +66,18 @@ export function LancamentoForm({
     setFormulario((atual) => ({ ...atual, tipo, categoriaId: '', doadorId: null }))
   }
 
+  function removerArquivo() {
+    setFormulario((atual) => ({ ...atual, arquivo: null }))
+    setChaveDoCampoDeArquivo((chave) => chave + 1)
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     const salvou = await onSubmit(formulario)
     // Ao criar, mantém tipo, data e categoria para lançar vários itens seguidos sem redigitar.
     if (salvou && !editando) {
-      setFormulario((atual) => ({ ...atual, valor: '', descricao: '', arquivo: null }))
-      setChaveDoCampoDeArquivo((chave) => chave + 1)
+      setFormulario((atual) => ({ ...atual, valor: '', descricao: '' }))
+      removerArquivo()
     }
   }
 
@@ -145,24 +150,40 @@ export function LancamentoForm({
         onChange={(event) => atualizar('descricao', event.target.value)}
         className={`${classeCampo} ${formulario.tipo === 'entrada' ? 'sm:col-span-2' : 'sm:col-span-4'}`}
       />
-      <div className="flex flex-col gap-1 sm:col-span-6">
-        <label htmlFor="comprovante" className="text-xs font-medium text-[#4f5c4c]">
+      <div className="flex flex-col gap-1.5 sm:col-span-6">
+        <span className="text-xs font-medium text-[#4f5c4c]">
           Comprovante (foto ou PDF, até 5 MB). Obrigatório a partir de{' '}
           {formatarValorEmReais(VALOR_MINIMO_COMPROVANTE)}.
-        </label>
-        <input
-          id="comprovante"
-          key={chaveDoCampoDeArquivo}
-          type="file"
-          accept={TIPOS_ACEITOS.join(',')}
-          onChange={(event) => atualizar('arquivo', event.target.files?.[0] ?? null)}
-          className="text-sm"
-        />
-        {formulario.comprovanteAtual && !formulario.arquivo && (
-          <span className="text-xs text-[#2f7d34]">
-            Já há um comprovante anexado. Escolha outro arquivo só se quiser substituí-lo.
-          </span>
-        )}
+        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* O campo nativo é escondido: o botão de verdade é o rótulo, que abre o seletor de arquivos. */}
+          <input
+            id="comprovante"
+            key={chaveDoCampoDeArquivo}
+            type="file"
+            accept={TIPOS_ACEITOS.join(',')}
+            onChange={(event) => atualizar('arquivo', event.target.files?.[0] ?? null)}
+            className="peer sr-only"
+          />
+          <label
+            htmlFor="comprovante"
+            className={`${classeBotao} flex cursor-pointer items-center border border-dashed border-[#9aa896] bg-white text-[#141a14] peer-focus-visible:outline-2 peer-focus-visible:outline-[#141a14]`}
+          >
+            {formulario.arquivo ? 'Trocar arquivo' : 'Anexar comprovante'}
+          </label>
+          {formulario.arquivo ? (
+            <>
+              <span className="max-w-xs truncate text-sm">{formulario.arquivo.name}</span>
+              <button type="button" onClick={removerArquivo} className={`${classeBotao} text-[#b3261e]`}>
+                Remover
+              </button>
+            </>
+          ) : formulario.comprovanteAtual ? (
+            <span className="text-sm text-[#2f7d34]">Comprovante já anexado (escolha outro arquivo para substituí-lo)</span>
+          ) : (
+            <span className="text-sm text-[#8b968a]">Nenhum arquivo escolhido</span>
+          )}
+        </div>
       </div>
       <div className="flex gap-2.5 sm:col-span-6 sm:justify-end">
         {editando && (
