@@ -7,18 +7,11 @@ import {
 } from '../services/lancamentosService'
 import type { Categoria } from '../types/categoria'
 import type { Lancamento, NovoLancamento, TipoLancamento } from '../types/lancamento'
+import { intervaloDoPeriodo } from './periodo'
 import { useSalvarERecarregar } from './useSalvarERecarregar'
 import { validarLancamento, type FormularioLancamento } from './validarLancamento'
 
 export type FiltroLancamentos = { tipo?: TipoLancamento; mes?: string }
-
-// "2026-02" -> do dia 1 ao último dia do mês (dia 0 do mês seguinte = último dia deste).
-function intervaloDoMes(mes?: string) {
-  if (!mes) return {}
-  const [ano, numeroMes] = mes.split('-').map(Number)
-  const ultimoDia = String(new Date(ano, numeroMes, 0).getDate()).padStart(2, '0')
-  return { dataInicio: `${mes}-01`, dataFim: `${mes}-${ultimoDia}` }
-}
 
 export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Categoria[]) {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([])
@@ -28,7 +21,7 @@ export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Cat
   const carregar = useCallback(() => {
     // Trocar o filtro rápido pode fazer uma resposta antiga chegar depois da nova; só a última vale.
     const requisicao = ++ultimaRequisicao.current
-    return listLancamentos({ tipo, ...intervaloDoMes(mes) }).then((resultado) => {
+    return listLancamentos({ tipo, ...(mes && intervaloDoPeriodo(mes)) }).then((resultado) => {
       if (requisicao === ultimaRequisicao.current) setLancamentos(resultado)
     })
   }, [tipo, mes])
