@@ -1,9 +1,31 @@
+import { Link } from 'react-router-dom'
 import { AppShell } from '../components/AppShell'
 import { useDashboard } from '../hooks/useDashboard'
 import type { ResumoDashboard } from '../hooks/calcularResumoDashboard'
+import { periodoDoMesAtual } from '../hooks/periodo'
 import type { Lancamento } from '../types/lancamento'
 
 const CORES_CATEGORIA = ['#141a14', '#2f7d34', '#9fe39a', '#6f7d6c', '#b8c4b3', '#dbe3d7']
+
+// Todo card do dashboard é um link; o realce ao passar o mouse e ao focar indica que dá para clicar.
+const classeLink =
+  'transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141a14]'
+
+// Destinos dos cards. Os nomes dos filtros na URL são os que as telas de destino leem.
+function destinosDoDashboard(mes: string, pendenciasComprovante: number) {
+  return {
+    lancamentos: '/lancamentos',
+    entradasDoMes: `/lancamentos?tipo=entrada&mes=${mes}`,
+    saidasDoMes: `/lancamentos?tipo=saida&mes=${mes}`,
+    novaEntrada: '/lancamentos?novo=entrada',
+    novaSaida: '/lancamentos?novo=saida',
+    // Sem pendências, o filtro mostraria uma lista vazia: melhor levar à lista comum.
+    prestacaoDeContas: pendenciasComprovante > 0 ? '/lancamentos?comprovante=faltando' : '/lancamentos',
+    relatorioDoMes: `/relatorios?periodo=${mes}`,
+    doadores: '/doadores',
+    relatorios: '/relatorios',
+  }
+}
 
 function formatMoeda(valor: number) {
   const partes = valor.toFixed(2).split('.')
@@ -24,14 +46,17 @@ function formatData(data: string) {
   return `${dia} ${meses[Number(mes) - 1]}`
 }
 
-function CartaoSaldo({ resumo }: { resumo: ResumoDashboard }) {
+function CartaoSaldo({ resumo, destino }: { resumo: ResumoDashboard; destino: string }) {
   const { inteiro, centavos } = formatMoeda(resumo.saldo)
   const resultadoMes = resumo.entradasMes - resumo.saidasMes
   const resultadoMesAnterior = resumo.entradasMesAnterior - resumo.saidasMesAnterior
   const diferencaEntreMeses = resultadoMes - resultadoMesAnterior
 
   return (
-    <section className="col-span-12 flex flex-col justify-between rounded-[20px] bg-[#141a14] p-6 text-white md:col-span-5">
+    <Link
+      to={destino}
+      className={`col-span-12 flex flex-col justify-between rounded-[20px] bg-[#141a14] p-6 text-white md:col-span-5 ${classeLink}`}
+    >
       <div className="text-[15px] font-medium">Saldo em caixa</div>
       <div className="text-4xl font-bold tracking-[-0.02em]">
         R$ {inteiro}
@@ -45,7 +70,7 @@ function CartaoSaldo({ resumo }: { resumo: ResumoDashboard }) {
           {diferencaEntreMeses >= 0 ? 'a mais' : 'a menos'} que no mês passado
         </span>
       </div>
-    </section>
+    </Link>
   )
 }
 
@@ -55,16 +80,21 @@ function CartaoResumo({
   variacao,
   corVariacao,
   extra,
+  destino,
 }: {
   titulo: string
   valor: number
   variacao: string | null
   corVariacao: string
   extra?: string
+  destino: string
 }) {
   const { inteiro, centavos } = formatMoeda(valor)
   return (
-    <div className="flex flex-col justify-between rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5">
+    <Link
+      to={destino}
+      className={`flex flex-col justify-between rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5 ${classeLink}`}
+    >
       <div className="text-sm font-medium">{titulo}</div>
       <div className="text-2xl font-bold tracking-[-0.01em]">
         R$ {inteiro}
@@ -76,7 +106,7 @@ function CartaoResumo({
         )}
         {extra ?? 'vs. mês passado'}
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -162,6 +192,7 @@ function CartaoLancamento({ lancamento }: { lancamento: Lancamento }) {
 
 export function Dashboard() {
   const { resumo, isLoading, error } = useDashboard()
+  const destinos = destinosDoDashboard(periodoDoMesAtual(), resumo?.pendenciasComprovante ?? 0)
 
   return (
     <AppShell>
@@ -174,7 +205,7 @@ export function Dashboard() {
 
       {resumo && (
         <div className="grid grid-cols-12 gap-5">
-          <CartaoSaldo resumo={resumo} />
+          <CartaoSaldo resumo={resumo} destino={destinos.lancamentos} />
 
           <section className="col-span-12 grid grid-cols-1 gap-5 sm:grid-cols-3 md:col-span-7">
             <CartaoResumo
@@ -182,12 +213,14 @@ export function Dashboard() {
               valor={resumo.entradasMes}
               variacao={formatVariacao(resumo.entradasMes, resumo.entradasMesAnterior)}
               corVariacao="bg-[#eef4ea] text-[#2f7d34]"
+              destino={destinos.entradasDoMes}
             />
             <CartaoResumo
               titulo="Saídas do mês"
               valor={resumo.saidasMes}
               variacao={formatVariacao(resumo.saidasMes, resumo.saidasMesAnterior)}
               corVariacao="bg-[#fbeeec] text-[#b3261e]"
+              destino={destinos.saidasDoMes}
             />
             <CartaoResumo
               titulo="Doações do mês"
@@ -195,16 +228,23 @@ export function Dashboard() {
               variacao={`${resumo.doadoresMes} doadores`}
               corVariacao="bg-[#eef4ea] text-[#2f7d34]"
               extra="neste mês"
+              destino={destinos.entradasDoMes}
             />
           </section>
 
-          <section className="col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-6 md:col-span-7">
+          <Link
+            to={destinos.relatorioDoMes}
+            className={`col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-6 md:col-span-7 ${classeLink}`}
+          >
             <h2 className="m-0 mb-3.5 text-base font-semibold">Para onde foi o dinheiro</h2>
             <GraficoCategorias gastos={resumo.gastosPorCategoria} saidasMes={resumo.saidasMes} />
-          </section>
+          </Link>
 
           <div className="col-span-12 flex flex-col gap-5 md:col-span-5">
-            <section className="flex flex-1 items-center gap-5 rounded-[20px] bg-[#141a14] p-6 text-white">
+            <Link
+              to={destinos.prestacaoDeContas}
+              className={`flex flex-1 items-center gap-5 rounded-[20px] bg-[#141a14] p-6 text-white ${classeLink}`}
+            >
               <div className="flex flex-1 flex-col gap-3">
                 <div className="text-sm text-[#c9d3c5]">Prestação de contas</div>
                 {resumo.pendenciasComprovante > 0 ? (
@@ -218,27 +258,33 @@ export function Dashboard() {
                   </div>
                 )}
               </div>
-            </section>
+            </Link>
 
             <section className="rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5">
               <h2 className="m-0 mb-3.5 text-base font-semibold">Ações rápidas</h2>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {['Nova entrada', 'Nova saída', 'Novo doador', 'Exportar'].map((acao) => (
-                  <button
-                    key={acao}
-                    type="button"
-                    disabled
-                    title="Ainda não disponível"
-                    className="flex h-[72px] cursor-not-allowed flex-col items-center justify-center gap-2 rounded-xl border border-[#e0e7dc] bg-[#eff3ec] text-xs font-medium text-[#141a14] opacity-70"
+                {[
+                  { rotulo: 'Nova entrada', destino: destinos.novaEntrada },
+                  { rotulo: 'Nova saída', destino: destinos.novaSaida },
+                  { rotulo: 'Novo doador', destino: destinos.doadores },
+                  { rotulo: 'Exportar', destino: destinos.relatorios },
+                ].map(({ rotulo, destino }) => (
+                  <Link
+                    key={rotulo}
+                    to={destino}
+                    className={`flex h-18 flex-col items-center justify-center gap-2 rounded-xl border border-[#e0e7dc] bg-[#eff3ec] text-xs font-medium text-[#141a14] hover:bg-[#e6ece2] ${classeLink}`}
                   >
-                    {acao}
-                  </button>
+                    {rotulo}
+                  </Link>
                 ))}
               </div>
             </section>
           </div>
 
-          <section className="col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5 md:col-span-7">
+          <Link
+            to={destinos.doadores}
+            className={`col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5 md:col-span-7 ${classeLink}`}
+          >
             <h2 className="m-0 mb-3 text-base font-semibold">Doações recentes</h2>
             {resumo.doacoesRecentes.length === 0 ? (
               <p className="text-sm text-[#4f5c4c]">Nenhuma doação registrada ainda.</p>
@@ -262,9 +308,12 @@ export function Dashboard() {
                 ))}
               </div>
             )}
-          </section>
+          </Link>
 
-          <section className="col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5 md:col-span-5">
+          <Link
+            to={destinos.lancamentos}
+            className={`col-span-12 rounded-[20px] border border-[#e0e7dc] bg-[#fafcf8] p-5 md:col-span-5 ${classeLink}`}
+          >
             <h2 className="m-0 mb-3 text-base font-semibold">Últimos lançamentos</h2>
             {resumo.ultimosLancamentos.length === 0 ? (
               <p className="text-sm text-[#4f5c4c]">Nenhum lançamento registrado ainda.</p>
@@ -273,7 +322,7 @@ export function Dashboard() {
                 <CartaoLancamento key={lancamento.id} lancamento={lancamento} />
               ))
             )}
-          </section>
+          </Link>
         </div>
       )}
     </AppShell>

@@ -10,18 +10,21 @@ import { formatarData, formatarValorEmReais } from '../hooks/formatacao'
 import { useFiltrosDaUrl } from '../hooks/useFiltrosDaUrl'
 import { useLancamentos, type FiltroLancamentos } from '../hooks/useLancamentos'
 import type { FormularioLancamento } from '../hooks/validarLancamento'
-import type { Lancamento } from '../types/lancamento'
+import type { Lancamento, TipoLancamento } from '../types/lancamento'
 
 const QUANTIDADE_INICIAL = 10
 
 const FORMATO_MES =/^\d{4}-(0[1-9]|1[0-2])$/
 
+function lerTipo(valor: string | null): TipoLancamento | undefined {
+  return valor === 'entrada' || valor === 'saida' ? valor : undefined
+}
+
 // Filtros vêm da URL (/lancamentos?tipo=entrada&mes=2026-09) para poderem ser linkados de outras telas.
 function lerFiltro(parametros: URLSearchParams): FiltroLancamentos {
-  const tipo = parametros.get('tipo')
   const mes = parametros.get('mes') ?? ''
   return {
-    tipo: tipo === 'entrada' || tipo === 'saida' ? tipo : undefined,
+    tipo: lerTipo(parametros.get('tipo')),
     mes: FORMATO_MES.test(mes) ? mes : undefined,
     semComprovante: parametros.get('comprovante') === 'faltando' || undefined,
   }
@@ -133,6 +136,7 @@ export function Lancamentos() {
             key={emEdicao?.id ?? 'novo'}
             categorias={categorias}
             doadores={doadores}
+            tipoInicial={lerTipo(parametros.get('novo'))}
             lancamentoEmEdicao={emEdicao}
             onSubmit={salvar}
             onCancelarEdicao={() => setEmEdicao(undefined)}

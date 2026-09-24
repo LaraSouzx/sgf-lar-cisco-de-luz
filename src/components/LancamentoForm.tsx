@@ -14,17 +14,19 @@ import { classeBotao, classeCampo } from './estilos'
 type LancamentoFormProps = {
   categorias: Categoria[]
   doadores: Doador[]
+  // Tipo com que o formulário de um lançamento novo abre (ex: vindo de "Nova entrada" no dashboard).
+  tipoInicial?: TipoLancamento
   lancamentoEmEdicao?: Lancamento
   onSubmit: (formulario: FormularioLancamento) => Promise<boolean>
   onCancelarEdicao: () => void
 }
 
-function formularioInicial(lancamento?: Lancamento): FormularioLancamento {
+function formularioInicial(lancamento?: Lancamento, tipoInicial: TipoLancamento = 'saida'): FormularioLancamento {
   if (!lancamento) {
     return {
       data: dataDeHoje(),
       valor: '',
-      tipo: 'saida',
+      tipo: tipoInicial,
       categoriaId: '',
       descricao: '',
       doadorId: null,
@@ -48,11 +50,12 @@ function formularioInicial(lancamento?: Lancamento): FormularioLancamento {
 export function LancamentoForm({
   categorias,
   doadores,
+  tipoInicial,
   lancamentoEmEdicao,
   onSubmit,
   onCancelarEdicao,
 }: LancamentoFormProps) {
-  const [formulario, setFormulario] = useState(() => formularioInicial(lancamentoEmEdicao))
+  const [formulario, setFormulario] = useState(() => formularioInicial(lancamentoEmEdicao, tipoInicial))
   // O campo de arquivo não é controlado; mudar a chave é o jeito de esvaziá-lo depois de salvar.
   const [chaveDoCampoDeArquivo, setChaveDoCampoDeArquivo] = useState(0)
   const editando = Boolean(lancamentoEmEdicao)
