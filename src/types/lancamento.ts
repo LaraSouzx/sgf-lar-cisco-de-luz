@@ -17,7 +17,7 @@ export type Lancamento = {
 
 export type NovoLancamento = Pick<
   Lancamento,
-  'data' | 'valor' | 'tipo' | 'categoriaId' | 'descricao' | 'doadorId'
+  'data' | 'valor' | 'tipo' | 'categoriaId' | 'descricao' | 'doadorId' | 'comprovanteUrl'
 >
 
 // O tipo não muda depois de criado: a categoria escolhida só vale para um tipo.

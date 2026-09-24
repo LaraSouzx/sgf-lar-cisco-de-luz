@@ -1,10 +1,22 @@
+import {
+  TAMANHO_MAXIMO_BYTES,
+  TIPOS_ACEITOS,
+  VALOR_MINIMO_COMPROVANTE,
+} from '../lib/regrasDeComprovante'
 import type { Categoria } from '../types/categoria'
 import type { NovoLancamento, TipoLancamento } from '../types/lancamento'
+import { formatarValorEmReais } from './formatacao'
 
-// Campos como chegam do formulário: o valor ainda é o texto digitado.
-export type FormularioLancamento = Omit<NovoLancamento, 'valor'> & { valor: string }
+// Campos como chegam do formulário: o valor ainda é o texto digitado, `arquivo` é o comprovante
+// escolhido agora (ainda não enviado) e `comprovanteAtual` é o que o lançamento já tinha (edição).
+export type FormularioLancamento = Omit<NovoLancamento, 'valor' | 'comprovanteUrl'> & {
+  valor: string
+  arquivo: File | null
+  comprovanteAtual: string | null
+}
 
-type ResultadoValidacao = { lancamento: NovoLancamento } | { erro: string }
+// Quando há `arquivo`, o chamador envia o arquivo e grava o caminho no lugar de `comprovanteUrl`.
+type ResultadoValidacao = { lancamento: NovoLancamento; arquivo: File | null } | { erro: string }
 
 const ROTULO_TIPO: Record<TipoLancamento, string> = { entrada: 'entrada', saida: 'saída' }
 
@@ -39,6 +51,20 @@ export function categoriasDisponiveis(
   )
 }
 
+function validarComprovante(valor: number, arquivo: File | null, comprovanteAtual: string | null) {
+  if (arquivo) {
+    if (!TIPOS_ACEITOS.includes(arquivo.type)) return 'O comprovante deve ser uma foto (JPG, PNG ou WebP) ou um PDF'
+    if (arquivo.size > TAMANHO_MAXIMO_BYTES) return 'O comprovante pode ter no máximo 5 MB'
+    return null
+  }
+
+  if (valor >= VALOR_MINIMO_COMPROVANTE && !comprovanteAtual) {
+    const minimo = formatarValorEmReais(VALOR_MINIMO_COMPROVANTE)
+    return `Anexe o comprovante: lançamentos a partir de ${minimo} exigem comprovante`
+  }
+  return null
+}
+
 export function validarLancamento(
   formulario: FormularioLancamento,
   categorias: Categoria[],
@@ -63,5 +89,9 @@ export function validarLancamento(
 
   if (formulario.tipo === 'saida' && formulario.doadorId) return { erro: 'Só entradas podem ter doador' }
 
-  return { lancamento: { ...formulario, valor, descricao } }
+  const { arquivo, comprovanteAtual, ...campos } = formulario
+  const erroComprovante = validarComprovante(valor, arquivo, comprovanteAtual)
+  if (erroComprovante) return { erro: erroComprovante }
+
+  return { lancamento: { ...campos, valor, descricao, comprovanteUrl: comprovanteAtual }, arquivo }
 }

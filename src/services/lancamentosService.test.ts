@@ -6,21 +6,22 @@ import {
   listLancamentos,
 } from './lancamentosService'
 
-const { order, lte, gte, eq, select, insert, update, updateEq, from } = vi.hoisted(() => {
+const { order, lte, gte, eq, is, select, insert, update, updateEq, from } = vi.hoisted(() => {
   const order = vi.fn()
   // Os filtros da listagem são opcionais e encadeáveis em qualquer combinação.
   const consulta: Record<string, unknown> = { order }
   const gte = vi.fn(() => consulta)
   const lte = vi.fn(() => consulta)
   const eq = vi.fn(() => consulta)
-  Object.assign(consulta, { gte, lte, eq })
+  const is = vi.fn(() => consulta)
+  Object.assign(consulta, { gte, lte, eq, is })
 
   const select = vi.fn(() => consulta)
   const insert = vi.fn()
   const updateEq = vi.fn()
   const update = vi.fn(() => ({ eq: updateEq }))
   const from = vi.fn((_table: string) => ({ select, insert, update }))
-  return { order, lte, gte, eq, select, insert, update, updateEq, from }
+  return { order, lte, gte, eq, is, select, insert, update, updateEq, from }
 })
 
 vi.mock('../lib/supabaseClient', () => ({
@@ -62,6 +63,24 @@ describe('lancamentosService', () => {
       eq.mockClear()
       await listLancamentos({})
       expect(eq).not.toHaveBeenCalled()
+    })
+
+    it('lista só os não cancelados e sem comprovante quando semComprovante é pedido', async () => {
+      order.mockResolvedValue({ data: [], error: null })
+
+      await listLancamentos({ semComprovante: true })
+
+      // Mesma regra do card "Prestação de contas": cancelado não conta como pendência.
+      expect(eq).toHaveBeenCalledWith('cancelado', false)
+      expect(is).toHaveBeenCalledWith('comprovante_url', null)
+    })
+
+    it('não filtra por comprovante quando semComprovante não é pedido', async () => {
+      order.mockResolvedValue({ data: [], error: null })
+
+      await listLancamentos({})
+
+      expect(is).not.toHaveBeenCalled()
     })
 
     it('filtra pelo doador quando informado', async () => {
@@ -128,6 +147,7 @@ describe('lancamentosService', () => {
       categoriaId: 'c1',
       descricao: 'Conta de luz',
       doadorId: null,
+      comprovanteUrl: null,
     }
 
     it('insere o lançamento com as colunas do banco, sem informar o usuário (o banco preenche)', async () => {
@@ -143,7 +163,16 @@ describe('lancamentosService', () => {
         categoria_id: 'c1',
         descricao: 'Conta de luz',
         doador_id: null,
+        comprovante_url: null,
       })
+    })
+
+    it('grava o caminho do comprovante quando há um', async () => {
+      insert.mockResolvedValue({ error: null })
+
+      await criarLancamento({ ...novo, comprovanteUrl: 'abc.pdf' })
+
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ comprovante_url: 'abc.pdf' }))
     })
 
     it('envia o doador quando a entrada tem um', async () => {
@@ -171,6 +200,7 @@ describe('lancamentosService', () => {
         categoriaId: 'c2',
         descricao: 'Corrigido',
         doadorId: 'd1',
+        comprovanteUrl: 'novo.pdf',
       })
 
       expect(update).toHaveBeenCalledWith({
@@ -179,6 +209,7 @@ describe('lancamentosService', () => {
         categoria_id: 'c2',
         descricao: 'Corrigido',
         doador_id: 'd1',
+        comprovante_url: 'novo.pdf',
       })
       expect(updateEq).toHaveBeenCalledWith('id', 'l1')
     })
@@ -193,6 +224,7 @@ describe('lancamentosService', () => {
           categoriaId: 'c2',
           descricao: 'x',
           doadorId: null,
+          comprovanteUrl: null,
         }),
       ).rejects.toThrow('Não foi possível salvar o lançamento')
     })

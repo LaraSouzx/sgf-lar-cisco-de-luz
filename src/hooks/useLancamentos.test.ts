@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as comprovanteService from '../services/comprovanteService'
 import * as lancamentosService from '../services/lancamentosService'
 import type { Categoria } from '../types/categoria'
 import type { Lancamento } from '../types/lancamento'
@@ -7,6 +8,7 @@ import { useLancamentos, type FiltroLancamentos } from './useLancamentos'
 import type { FormularioLancamento } from './validarLancamento'
 
 vi.mock('../services/lancamentosService')
+vi.mock('../services/comprovanteService')
 
 const luz: Categoria = { id: 'c1', nome: 'Luz', tipo: 'saida', ativa: true }
 const categorias = [luz]
@@ -37,8 +39,15 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     categoriaId: 'c1',
     descricao: 'Conta de luz',
     doadorId: null,
+    // O valor padrão (150,50) exige comprovante; o formulário-base já vem com um anexado.
+    arquivo: null,
+    comprovanteAtual: 'existente.pdf',
     ...overrides,
   }
+}
+
+function comprovante() {
+  return new File(['x'], 'nota.pdf', { type: 'application/pdf' })
 }
 
 async function renderCarregado(
@@ -127,6 +136,7 @@ describe('useLancamentos', () => {
         categoriaId: 'c1',
         descricao: 'Conta de luz',
         doadorId: null,
+        comprovanteUrl: 'existente.pdf',
       })
       expect(result.current.lancamentos).toHaveLength(1)
     })
@@ -177,6 +187,7 @@ describe('useLancamentos', () => {
         categoriaId: 'c1',
         descricao: 'Luz de setembro',
         doadorId: null,
+        comprovanteUrl: 'existente.pdf',
       })
       expect(lancamentosService.listLancamentos).toHaveBeenCalledTimes(2)
     })
@@ -219,6 +230,146 @@ describe('useLancamentos', () => {
       })
 
       expect(result.current.error).toBe('Não foi possível cancelar o lançamento')
+    })
+  })
+
+  describe('comprovante', () => {
+    it('envia o arquivo antes de salvar e grava o caminho devolvido no lançamento', async () => {
+      const { result } = await renderCarregado([])
+      const chamadas: string[] = []
+      vi.mocked(comprovanteService.enviarComprovante).mockImplementation(async () => {
+        chamadas.push('enviar')
+        return 'novo-caminho.pdf'
+      })
+      vi.mocked(lancamentosService.criarLancamento).mockImplementation(async () => {
+        chamadas.push('salvar')
+      })
+      const nota = comprovante()
+
+      await act(async () => {
+        await result.current.criar(formulario({ arquivo: nota, comprovanteAtual: null }))
+      })
+
+      expect(comprovanteService.enviarComprovante).toHaveBeenCalledWith(nota)
+      expect(lancamentosService.criarLancamento).toHaveBeenCalledWith(
+        expect.objectContaining({ comprovanteUrl: 'novo-caminho.pdf' }),
+      )
+      expect(chamadas).toEqual(['enviar', 'salvar'])
+    })
+
+    it('não envia arquivo quando não há um novo, mantendo o caminho que o lançamento já tinha', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(lancamentosService.editarLancamento).mockResolvedValue(undefined)
+
+      await act(async () => {
+        await result.current.editar('l1', formulario({ arquivo: null, comprovanteAtual: 'antigo.pdf' }))
+      })
+
+      expect(comprovanteService.enviarComprovante).not.toHaveBeenCalled()
+      expect(lancamentosService.editarLancamento).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ comprovanteUrl: 'antigo.pdf' }),
+      )
+    })
+
+    it('substitui o comprovante: envia o novo arquivo e grava o novo caminho', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(comprovanteService.enviarComprovante).mockResolvedValue('substituto.pdf')
+      vi.mocked(lancamentosService.editarLancamento).mockResolvedValue(undefined)
+
+      await act(async () => {
+        await result.current.editar('l1', formulario({ arquivo: comprovante(), comprovanteAtual: 'antigo.pdf' }))
+      })
+
+      expect(lancamentosService.editarLancamento).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ comprovanteUrl: 'substituto.pdf' }),
+      )
+    })
+
+    it('não salva o lançamento quando o envio do arquivo falha', async () => {
+      const { result } = await renderCarregado([])
+      vi.mocked(comprovanteService.enviarComprovante).mockRejectedValue(
+        new Error('Não foi possível enviar o comprovante'),
+      )
+
+      let criou = true
+      await act(async () => {
+        criou = await result.current.criar(formulario({ arquivo: comprovante(), comprovanteAtual: null }))
+      })
+
+      expect(criou).toBe(false)
+      expect(result.current.error).toBe('Não foi possível enviar o comprovante')
+      expect(lancamentosService.criarLancamento).not.toHaveBeenCalled()
+    })
+
+    it('mostra o erro de validação e não envia o arquivo quando o valor exige comprovante e falta', async () => {
+      const { result } = await renderCarregado([])
+
+      await act(async () => {
+        await result.current.criar(formulario({ arquivo: null, comprovanteAtual: null }))
+      })
+
+      expect(result.current.error).toMatch(/^Anexe o comprovante/)
+      expect(comprovanteService.enviarComprovante).not.toHaveBeenCalled()
+      expect(lancamentosService.criarLancamento).not.toHaveBeenCalled()
+    })
+
+    it('repassa o filtro "sem comprovante" para a listagem', async () => {
+      await renderCarregado([], { semComprovante: true })
+
+      expect(lancamentosService.listLancamentos).toHaveBeenCalledWith({ semComprovante: true })
+    })
+  })
+
+  describe('abrirComprovante', () => {
+    // A aba é aberta no clique e só depois recebe o endereço: o navegador bloqueia abas abertas após uma espera.
+    function abaFalsa() {
+      const aba = { location: { href: '' }, close: vi.fn(), opener: {} as unknown }
+      vi.spyOn(window, 'open').mockReturnValue(aba as unknown as Window)
+      return aba
+    }
+
+    it('abre uma aba e a leva ao link temporário do comprovante', async () => {
+      const aba = abaFalsa()
+      const { result } = await renderCarregado()
+      vi.mocked(comprovanteService.gerarLinkComprovante).mockResolvedValue('https://exemplo.com/link')
+
+      await act(async () => {
+        await result.current.abrirComprovante('abc.pdf')
+      })
+
+      expect(comprovanteService.gerarLinkComprovante).toHaveBeenCalledWith('abc.pdf')
+      expect(aba.location.href).toBe('https://exemplo.com/link')
+      // A aba não pode ter acesso à página do sistema.
+      expect(aba.opener).toBeNull()
+    })
+
+    it('pede para liberar pop-ups quando o navegador bloqueia a aba, sem gerar o link', async () => {
+      vi.spyOn(window, 'open').mockReturnValue(null)
+      const { result } = await renderCarregado()
+
+      await act(async () => {
+        await result.current.abrirComprovante('abc.pdf')
+      })
+
+      expect(result.current.error).toBe('Libere as janelas pop-up do navegador para abrir o comprovante')
+      expect(comprovanteService.gerarLinkComprovante).not.toHaveBeenCalled()
+    })
+
+    it('fecha a aba e mostra erro quando não consegue gerar o link', async () => {
+      const aba = abaFalsa()
+      const { result } = await renderCarregado()
+      vi.mocked(comprovanteService.gerarLinkComprovante).mockRejectedValue(
+        new Error('Não foi possível abrir o comprovante'),
+      )
+
+      await act(async () => {
+        await result.current.abrirComprovante('abc.pdf')
+      })
+
+      expect(aba.close).toHaveBeenCalled()
+      expect(result.current.error).toBe('Não foi possível abrir o comprovante')
     })
   })
 })

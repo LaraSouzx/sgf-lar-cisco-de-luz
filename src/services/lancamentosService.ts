@@ -43,6 +43,8 @@ export async function listLancamentos(filtro: {
   dataFim?: string
   tipo?: TipoLancamento
   doadorId?: string
+  // Pendências de prestação de contas: não cancelados e sem comprovante.
+  semComprovante?: boolean
 }) {
   let query = supabase
     .from('lancamentos')
@@ -55,6 +57,9 @@ export async function listLancamentos(filtro: {
   }
   if (filtro.doadorId) {
     query = query.eq('doador_id', filtro.doadorId)
+  }
+  if (filtro.semComprovante) {
+    query = query.eq('cancelado', false).is('comprovante_url', null)
   }
   if (filtro.dataInicio) {
     query = query.gte('data', filtro.dataInicio)
@@ -73,8 +78,13 @@ export async function listLancamentos(filtro: {
 }
 
 // Nomes do domínio (camelCase) para as colunas do banco (snake_case).
-function paraColunas<Campos extends EdicaoLancamento>({ categoriaId, doadorId, ...demaisCampos }: Campos) {
-  return { ...demaisCampos, categoria_id: categoriaId, doador_id: doadorId }
+function paraColunas<Campos extends EdicaoLancamento>({
+  categoriaId,
+  doadorId,
+  comprovanteUrl,
+  ...demaisCampos
+}: Campos) {
+  return { ...demaisCampos, categoria_id: categoriaId, doador_id: doadorId, comprovante_url: comprovanteUrl }
 }
 
 // usuario_id não é enviado: o banco preenche com auth.uid(), então ninguém lança em nome de outra pessoa.

@@ -5,15 +5,16 @@ import {
   editarLancamento,
   listLancamentos,
 } from '../services/lancamentosService'
+import { enviarComprovante, gerarLinkComprovante } from '../services/comprovanteService'
 import type { Categoria } from '../types/categoria'
 import type { Lancamento, NovoLancamento, TipoLancamento } from '../types/lancamento'
 import { intervaloDoPeriodo } from './periodo'
 import { useSalvarERecarregar } from './useSalvarERecarregar'
 import { validarLancamento, type FormularioLancamento } from './validarLancamento'
 
-export type FiltroLancamentos = { tipo?: TipoLancamento; mes?: string }
+export type FiltroLancamentos = { tipo?: TipoLancamento; mes?: string; semComprovante?: boolean }
 
-export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Categoria[]) {
+export function useLancamentos({ tipo, mes, semComprovante }: FiltroLancamentos, categorias: Categoria[]) {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const ultimaRequisicao = useRef(0)
@@ -21,10 +22,10 @@ export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Cat
   const carregar = useCallback(() => {
     // Trocar o filtro rápido pode fazer uma resposta antiga chegar depois da nova; só a última vale.
     const requisicao = ++ultimaRequisicao.current
-    return listLancamentos({ tipo, ...(mes && intervaloDoPeriodo(mes)) }).then((resultado) => {
+    return listLancamentos({ tipo, semComprovante, ...(mes && intervaloDoPeriodo(mes)) }).then((resultado) => {
       if (requisicao === ultimaRequisicao.current) setLancamentos(resultado)
     })
-  }, [tipo, mes])
+  }, [tipo, mes, semComprovante])
 
   const { error, setError, salvar } = useSalvarERecarregar(carregar, 'Erro ao salvar o lançamento')
 
@@ -46,7 +47,12 @@ export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Cat
       return Promise.resolve(false)
     }
 
-    return salvar(() => alteracao(resultado.lancamento))
+    const { lancamento, arquivo } = resultado
+    return salvar(async () => {
+      // O arquivo vai antes: se o envio falhar, o lançamento não é gravado sem a prova.
+      const comprovanteUrl = arquivo ? await enviarComprovante(arquivo) : lancamento.comprovanteUrl
+      await alteracao({ ...lancamento, comprovanteUrl })
+    })
   }
 
   function criar(formulario: FormularioLancamento) {
@@ -62,5 +68,23 @@ export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Cat
     return salvar(() => cancelarLancamento(id))
   }
 
-  return { lancamentos, isLoading, error, criar, editar, cancelar }
+  async function abrirComprovante(caminho: string) {
+    // A aba precisa ser aberta já no clique: o navegador bloqueia abas abertas depois de uma espera.
+    const aba = window.open('', '_blank')
+    if (!aba) {
+      setError('Libere as janelas pop-up do navegador para abrir o comprovante')
+      return
+    }
+    // A aba nunca deve ter acesso à página do sistema.
+    aba.opener = null
+
+    try {
+      aba.location.href = await gerarLinkComprovante(caminho)
+    } catch (err) {
+      aba.close()
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante')
+    }
+  }
+
+  return { lancamentos, isLoading, error, criar, editar, cancelar, abrirComprovante }
 }

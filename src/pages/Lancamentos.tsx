@@ -20,6 +20,7 @@ function lerFiltro(parametros: URLSearchParams): FiltroLancamentos {
   return {
     tipo: tipo === 'entrada' || tipo === 'saida' ? tipo : undefined,
     mes: FORMATO_MES.test(mes) ? mes : undefined,
+    semComprovante: parametros.get('comprovante') === 'faltando' || undefined,
   }
 }
 
@@ -27,13 +28,16 @@ function LinhaLancamento({
   lancamento,
   onEditar,
   onCancelar,
+  onVerComprovante,
 }: {
   lancamento: Lancamento
   onEditar: () => void
   onCancelar: () => void
+  onVerComprovante: (caminho: string) => void
 }) {
   const entrada = lancamento.tipo === 'entrada'
   const corValor = entrada ? 'text-[#2f7d34]' : 'text-[#b3261e]'
+  const caminhoDoComprovante = lancamento.comprovanteUrl
 
   return (
     <li className="flex min-h-14 flex-wrap items-center gap-3 border-b border-[#e8ede5] py-2 last:border-0">
@@ -50,9 +54,22 @@ function LinhaLancamento({
         {entrada ? '+' : '−'} {formatarValorEmReais(lancamento.valor)}
       </span>
       {lancamento.cancelado ? (
-        <span className="w-44 text-right text-xs text-[#8b968a]">Cancelado</span>
+        <span className="text-right text-xs text-[#8b968a]">Cancelado</span>
       ) : (
-        <span className="flex w-44 justify-end">
+        <span className="flex flex-wrap items-center justify-end">
+          {caminhoDoComprovante ? (
+            <button
+              type="button"
+              onClick={() => onVerComprovante(caminhoDoComprovante)}
+              className={`${classeBotao} text-[#2f7d34]`}
+            >
+              Ver comprovante
+            </button>
+          ) : (
+            <span className="rounded-md bg-[#fdf1d8] px-2 py-0.5 text-xs font-semibold text-[#8a5a00]">
+              Sem comprovante
+            </span>
+          )}
           <button type="button" onClick={onEditar} className={`${classeBotao} text-[#141a14]`}>
             Editar
           </button>
@@ -70,10 +87,15 @@ export function Lancamentos() {
   const filtro = lerFiltro(parametros)
   const { categorias, error: erroCategorias } = useCategorias()
   const { doadores } = useDoadores()
-  const { lancamentos, isLoading, error: erroLancamentos, criar, editar, cancelar } = useLancamentos(
-    filtro,
-    categorias,
-  )
+  const {
+    lancamentos,
+    isLoading,
+    error: erroLancamentos,
+    criar,
+    editar,
+    cancelar,
+    abrirComprovante,
+  } = useLancamentos(filtro, categorias)
   const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
   const [aCancelar, setACancelar] = useState<Lancamento>()
@@ -136,6 +158,15 @@ export function Lancamentos() {
                 <option value="entrada">Entradas</option>
                 <option value="saida">Saídas</option>
               </select>
+              <select
+                aria-label="Filtrar por comprovante"
+                value={filtro.semComprovante ? 'faltando' : ''}
+                onChange={(event) => atualizarFiltro('comprovante', event.target.value)}
+                className={classeCampo}
+              >
+                <option value="">Todos os comprovantes</option>
+                <option value="faltando">Sem comprovante</option>
+              </select>
             </div>
           </div>
 
@@ -150,6 +181,7 @@ export function Lancamentos() {
                 lancamento={lancamento}
                 onEditar={() => setEmEdicao(lancamento)}
                 onCancelar={() => setACancelar(lancamento)}
+                onVerComprovante={abrirComprovante}
               />
             ))}
           </ul>

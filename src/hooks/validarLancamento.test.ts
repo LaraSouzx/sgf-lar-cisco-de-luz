@@ -21,8 +21,17 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     categoriaId: 'c1',
     descricao: '  Conta de luz  ',
     doadorId: null,
+    // O valor padrão (150,50) exige comprovante; o formulário-base já vem com um anexado.
+    arquivo: null,
+    comprovanteAtual: 'existente.pdf',
     ...overrides,
   }
+}
+
+function arquivo(tipo: string, tamanho = 1000) {
+  const anexo = new File(['x'], 'comprovante', { type: tipo })
+  Object.defineProperty(anexo, 'size', { value: tamanho })
+  return anexo
 }
 
 describe('validarLancamento', () => {
@@ -35,7 +44,9 @@ describe('validarLancamento', () => {
         categoriaId: 'c1',
         descricao: 'Conta de luz',
         doadorId: null,
+        comprovanteUrl: 'existente.pdf',
       },
+      arquivo: null,
     })
   })
 
@@ -114,6 +125,81 @@ describe('validarLancamento', () => {
     expect(validarLancamento(formulario({ categoriaId: 'x' }), categorias, HOJE)).toEqual({
       erro: 'Escolha uma categoria de saída',
     })
+  })
+})
+
+describe('validarLancamento: comprovante', () => {
+  const semComprovante = { arquivo: null, comprovanteAtual: null }
+
+  it('aceita lançamento abaixo do valor mínimo sem comprovante', () => {
+    const resultado = validarLancamento(formulario({ ...semComprovante, valor: '49,99' }), categorias, HOJE)
+
+    expect(resultado).toMatchObject({ lancamento: { valor: 49.99, comprovanteUrl: null } })
+  })
+
+  it.each(['50', '50,00', '1.200,00'])('exige comprovante a partir do valor mínimo (%s)', (valor) => {
+    const resultado = validarLancamento(formulario({ ...semComprovante, valor }), categorias, HOJE)
+
+    expect(resultado).toEqual({ erro: expect.stringMatching(/^Anexe o comprovante/) })
+  })
+
+  it('exige comprovante também em entradas', () => {
+    const resultado = validarLancamento(
+      formulario({ ...semComprovante, tipo: 'entrada', categoriaId: 'c2', valor: '100' }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toEqual({ erro: expect.stringMatching(/^Anexe o comprovante/) })
+  })
+
+  it('aceita o valor alto quando há um arquivo novo, devolvendo o arquivo para ser enviado', () => {
+    const anexo = arquivo('application/pdf')
+
+    const resultado = validarLancamento(formulario({ arquivo: anexo, comprovanteAtual: null }), categorias, HOJE)
+
+    expect(resultado).toMatchObject({ lancamento: { comprovanteUrl: null }, arquivo: anexo })
+  })
+
+  it('aceita o valor alto quando o lançamento já tinha comprovante (edição)', () => {
+    const resultado = validarLancamento(
+      formulario({ arquivo: null, comprovanteAtual: 'antigo.pdf' }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toMatchObject({ lancamento: { comprovanteUrl: 'antigo.pdf' }, arquivo: null })
+  })
+
+  it.each(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])('aceita arquivo do tipo %s', (tipo) => {
+    expect(validarLancamento(formulario({ arquivo: arquivo(tipo) }), categorias, HOJE)).toHaveProperty('lancamento')
+  })
+
+  it.each(['text/plain', 'application/zip', 'image/gif', ''])('recusa arquivo do tipo "%s"', (tipo) => {
+    expect(validarLancamento(formulario({ arquivo: arquivo(tipo) }), categorias, HOJE)).toEqual({
+      erro: 'O comprovante deve ser uma foto (JPG, PNG ou WebP) ou um PDF',
+    })
+  })
+
+  it('recusa arquivo maior que 5 MB, mas aceita exatamente 5 MB', () => {
+    const cincoMb = 5 * 1024 * 1024
+
+    expect(validarLancamento(formulario({ arquivo: arquivo('image/png', cincoMb + 1) }), categorias, HOJE)).toEqual({
+      erro: 'O comprovante pode ter no máximo 5 MB',
+    })
+    expect(validarLancamento(formulario({ arquivo: arquivo('image/png', cincoMb) }), categorias, HOJE)).toHaveProperty(
+      'lancamento',
+    )
+  })
+
+  it('recusa arquivo inválido mesmo quando o valor não exigiria comprovante', () => {
+    const resultado = validarLancamento(
+      formulario({ valor: '10', arquivo: arquivo('text/plain'), comprovanteAtual: null }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toEqual({ erro: 'O comprovante deve ser uma foto (JPG, PNG ou WebP) ou um PDF' })
   })
 })
 
