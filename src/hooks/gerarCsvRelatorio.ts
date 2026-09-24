@@ -1,14 +1,9 @@
+import type { ContextoExportacao } from '../types/exportacao'
 import type { Lancamento } from '../types/lancamento'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
 import type { ValorPorCategoria } from './calculosFinanceiros'
 import { formatarData, formatarValorParaPlanilha } from './formatacao'
 import { rotuloDoPeriodo } from './periodo'
-
-type ContextoExportacao = {
-  // Data de geração no formato aaaa-mm-dd.
-  geradoEm: string
-  usuario: string
-}
 
 // Ponto e vírgula porque o Excel em português usa a vírgula como decimal.
 const SEPARADOR = ';'
