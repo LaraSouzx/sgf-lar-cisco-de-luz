@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-white">
-      <div className="hidden shrink-0 flex-col justify-start gap-16 bg-[linear-gradient(180deg,rgba(8,18,40,0.78)_0%,rgba(8,18,40,0.55)_30%,rgba(8,18,40,0)_58%),url('/login-hero.png')] rounded-r-[40px] bg-cover bg-bottom p-12 text-white md:flex md:w-1/2">
+      <div className="hidden shrink-0 flex-col justify-start gap-16 bg-[linear-gradient(180deg,rgba(8,18,40,0.78)_0%,rgba(8,18,40,0.55)_30%,rgba(8,18,40,0)_58%),url('/login-hero.png')] bg-cover bg-bottom p-12 text-white md:flex md:w-1/2">
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-2 self-start rounded-full border border-white/35 bg-[rgba(8,18,40,0.55)] px-4 py-2.5 text-sm font-semibold">
             <span>Bom te ver de novo</span>
