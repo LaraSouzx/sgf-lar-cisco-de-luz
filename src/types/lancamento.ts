@@ -15,7 +15,10 @@ export type Lancamento = {
   cancelado: boolean
 }
 
-export type NovoLancamento = Pick<Lancamento, 'data' | 'valor' | 'tipo' | 'categoriaId' | 'descricao'>
+export type NovoLancamento = Pick<
+  Lancamento,
+  'data' | 'valor' | 'tipo' | 'categoriaId' | 'descricao' | 'doadorId'
+>
 
 // O tipo não muda depois de criado: a categoria escolhida só vale para um tipo.
 export type EdicaoLancamento = Omit<NovoLancamento, 'tipo'>

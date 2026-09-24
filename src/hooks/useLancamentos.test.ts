@@ -36,6 +36,7 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     tipo: 'saida',
     categoriaId: 'c1',
     descricao: 'Conta de luz',
+    doadorId: null,
     ...overrides,
   }
 }
@@ -125,6 +126,7 @@ describe('useLancamentos', () => {
         tipo: 'saida',
         categoriaId: 'c1',
         descricao: 'Conta de luz',
+        doadorId: null,
       })
       expect(result.current.lancamentos).toHaveLength(1)
     })
@@ -174,6 +176,7 @@ describe('useLancamentos', () => {
         valor: 150.5,
         categoriaId: 'c1',
         descricao: 'Luz de setembro',
+        doadorId: null,
       })
       expect(lancamentosService.listLancamentos).toHaveBeenCalledTimes(2)
     })

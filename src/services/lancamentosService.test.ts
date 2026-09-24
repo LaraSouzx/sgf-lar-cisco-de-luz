@@ -119,6 +119,7 @@ describe('lancamentosService', () => {
       tipo: 'saida' as const,
       categoriaId: 'c1',
       descricao: 'Conta de luz',
+      doadorId: null,
     }
 
     it('insere o lançamento com as colunas do banco, sem informar o usuário (o banco preenche)', async () => {
@@ -133,7 +134,16 @@ describe('lancamentosService', () => {
         tipo: 'saida',
         categoria_id: 'c1',
         descricao: 'Conta de luz',
+        doador_id: null,
       })
+    })
+
+    it('envia o doador quando a entrada tem um', async () => {
+      insert.mockResolvedValue({ error: null })
+
+      await criarLancamento({ ...novo, tipo: 'entrada', doadorId: 'd1' })
+
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ doador_id: 'd1' }))
     })
 
     it('lança mensagem genérica quando o Supabase retorna erro', async () => {
@@ -144,7 +154,7 @@ describe('lancamentosService', () => {
   })
 
   describe('editarLancamento', () => {
-    it('atualiza data, valor, categoria e descrição do lançamento informado, sem mexer no tipo', async () => {
+    it('atualiza data, valor, categoria, descrição e doador do lançamento informado, sem mexer no tipo', async () => {
       updateEq.mockResolvedValue({ error: null })
 
       await editarLancamento('l1', {
@@ -152,6 +162,7 @@ describe('lancamentosService', () => {
         valor: 99,
         categoriaId: 'c2',
         descricao: 'Corrigido',
+        doadorId: 'd1',
       })
 
       expect(update).toHaveBeenCalledWith({
@@ -159,6 +170,7 @@ describe('lancamentosService', () => {
         valor: 99,
         categoria_id: 'c2',
         descricao: 'Corrigido',
+        doador_id: 'd1',
       })
       expect(updateEq).toHaveBeenCalledWith('id', 'l1')
     })
@@ -167,7 +179,13 @@ describe('lancamentosService', () => {
       updateEq.mockResolvedValue({ error: { message: 'db error' } })
 
       await expect(
-        editarLancamento('l1', { data: '2026-09-21', valor: 99, categoriaId: 'c2', descricao: 'x' }),
+        editarLancamento('l1', {
+          data: '2026-09-21',
+          valor: 99,
+          categoriaId: 'c2',
+          descricao: 'x',
+          doadorId: null,
+        }),
       ).rejects.toThrow('Não foi possível salvar o lançamento')
     })
   })

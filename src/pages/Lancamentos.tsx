@@ -5,6 +5,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { classeBotao, classeCampo } from '../components/estilos'
 import { LancamentoForm } from '../components/LancamentoForm'
 import { useCategorias } from '../hooks/useCategorias'
+import { useDoadores } from '../hooks/useDoadores'
 import { useLancamentos, type FiltroLancamentos } from '../hooks/useLancamentos'
 import type { FormularioLancamento } from '../hooks/validarLancamento'
 import type { Lancamento } from '../types/lancamento'
@@ -50,7 +51,9 @@ function LinhaLancamento({
         <span className={`text-sm font-semibold ${lancamento.cancelado ? 'text-[#8b968a] line-through' : ''}`}>
           {lancamento.descricao}
         </span>
-        <span className="text-xs text-[#4f5c4c]">{lancamento.categoriaNome}</span>
+        <span className="text-xs text-[#4f5c4c]">
+          {[lancamento.categoriaNome, lancamento.doadorNome].filter(Boolean).join(' · ')}
+        </span>
       </div>
       <span className={`text-sm font-bold ${lancamento.cancelado ? 'text-[#8b968a] line-through' : corValor}`}>
         {entrada ? '+' : '−'} {formatarValor(lancamento.valor)}
@@ -75,6 +78,7 @@ export function Lancamentos() {
   const [parametros, setParametros] = useSearchParams()
   const filtro = lerFiltro(parametros)
   const { categorias, error: erroCategorias } = useCategorias()
+  const { doadores } = useDoadores()
   const { lancamentos, isLoading, error: erroLancamentos, criar, editar, cancelar } = useLancamentos(
     filtro,
     categorias,
@@ -114,6 +118,7 @@ export function Lancamentos() {
           <LancamentoForm
             key={emEdicao?.id ?? 'novo'}
             categorias={categorias}
+            doadores={doadores}
             lancamentoEmEdicao={emEdicao}
             onSubmit={salvar}
             onCancelarEdicao={() => setEmEdicao(undefined)}

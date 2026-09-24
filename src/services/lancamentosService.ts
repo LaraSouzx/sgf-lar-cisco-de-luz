@@ -68,12 +68,14 @@ export async function listLancamentos(filtro: {
   return (data ?? []).map((row) => mapLancamento(row as unknown as LancamentoRow))
 }
 
+// Nomes do domínio (camelCase) para as colunas do banco (snake_case).
+function paraColunas<Campos extends EdicaoLancamento>({ categoriaId, doadorId, ...demaisCampos }: Campos) {
+  return { ...demaisCampos, categoria_id: categoriaId, doador_id: doadorId }
+}
+
 // usuario_id não é enviado: o banco preenche com auth.uid(), então ninguém lança em nome de outra pessoa.
 export async function criarLancamento(lancamento: NovoLancamento) {
-  const { categoriaId, ...demaisCampos } = lancamento
-  const { error } = await supabase
-    .from('lancamentos')
-    .insert({ ...demaisCampos, categoria_id: categoriaId })
+  const { error } = await supabase.from('lancamentos').insert(paraColunas(lancamento))
 
   if (error) {
     throw new Error('Não foi possível salvar o lançamento')
@@ -81,11 +83,7 @@ export async function criarLancamento(lancamento: NovoLancamento) {
 }
 
 export async function editarLancamento(id: string, lancamento: EdicaoLancamento) {
-  const { categoriaId, ...demaisCampos } = lancamento
-  const { error } = await supabase
-    .from('lancamentos')
-    .update({ ...demaisCampos, categoria_id: categoriaId })
-    .eq('id', id)
+  const { error } = await supabase.from('lancamentos').update(paraColunas(lancamento)).eq('id', id)
 
   if (error) {
     throw new Error('Não foi possível salvar o lançamento')

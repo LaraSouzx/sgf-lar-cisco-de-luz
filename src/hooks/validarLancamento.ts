@@ -61,5 +61,7 @@ export function validarLancamento(
     return { erro: `Escolha uma categoria de ${ROTULO_TIPO[formulario.tipo]}` }
   }
 
+  if (formulario.tipo === 'saida' && formulario.doadorId) return { erro: 'Só entradas podem ter doador' }
+
   return { lancamento: { ...formulario, valor, descricao } }
 }

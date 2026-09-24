@@ -5,11 +5,13 @@ import {
   type FormularioLancamento,
 } from '../hooks/validarLancamento'
 import type { Categoria } from '../types/categoria'
+import type { Doador } from '../types/doador'
 import type { Lancamento, TipoLancamento } from '../types/lancamento'
 import { classeBotao, classeCampo } from './estilos'
 
 type LancamentoFormProps = {
   categorias: Categoria[]
+  doadores: Doador[]
   lancamentoEmEdicao?: Lancamento
   onSubmit: (formulario: FormularioLancamento) => Promise<boolean>
   onCancelarEdicao: () => void
@@ -17,7 +19,7 @@ type LancamentoFormProps = {
 
 function formularioInicial(lancamento?: Lancamento): FormularioLancamento {
   if (!lancamento) {
-    return { data: dataDeHoje(), valor: '', tipo: 'saida', categoriaId: '', descricao: '' }
+    return { data: dataDeHoje(), valor: '', tipo: 'saida', categoriaId: '', descricao: '', doadorId: null }
   }
   return {
     data: lancamento.data,
@@ -25,11 +27,18 @@ function formularioInicial(lancamento?: Lancamento): FormularioLancamento {
     tipo: lancamento.tipo,
     categoriaId: lancamento.categoriaId,
     descricao: lancamento.descricao,
+    doadorId: lancamento.doadorId,
   }
 }
 
 // A página usa `key` para remontar o formulário ao trocar entre criar e editar, reiniciando o estado.
-export function LancamentoForm({ categorias, lancamentoEmEdicao, onSubmit, onCancelarEdicao }: LancamentoFormProps) {
+export function LancamentoForm({
+  categorias,
+  doadores,
+  lancamentoEmEdicao,
+  onSubmit,
+  onCancelarEdicao,
+}: LancamentoFormProps) {
   const [formulario, setFormulario] = useState(() => formularioInicial(lancamentoEmEdicao))
   const editando = Boolean(lancamentoEmEdicao)
 
@@ -38,8 +47,8 @@ export function LancamentoForm({ categorias, lancamentoEmEdicao, onSubmit, onCan
   }
 
   function trocarTipo(tipo: TipoLancamento) {
-    // A categoria escolhida só vale para um tipo, então volta para "escolha" ao trocar.
-    setFormulario((atual) => ({ ...atual, tipo, categoriaId: '' }))
+    // A categoria escolhida só vale para um tipo, então volta para "escolha" ao trocar; doador só existe em entrada.
+    setFormulario((atual) => ({ ...atual, tipo, categoriaId: '', doadorId: null }))
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -96,12 +105,27 @@ export function LancamentoForm({ categorias, lancamentoEmEdicao, onSubmit, onCan
           </option>
         ))}
       </select>
+      {formulario.tipo === 'entrada' && (
+        <select
+          aria-label="Doador"
+          value={formulario.doadorId ?? ''}
+          onChange={(event) => atualizar('doadorId', event.target.value || null)}
+          className={`${classeCampo} sm:col-span-2`}
+        >
+          <option value="">Sem doador</option>
+          {doadores.map((doador) => (
+            <option key={doador.id} value={doador.id}>
+              {doador.nome}
+            </option>
+          ))}
+        </select>
+      )}
       <input
         aria-label="Descrição"
         placeholder="Descrição"
         value={formulario.descricao}
         onChange={(event) => atualizar('descricao', event.target.value)}
-        className={`${classeCampo} sm:col-span-4`}
+        className={`${classeCampo} ${formulario.tipo === 'entrada' ? 'sm:col-span-2' : 'sm:col-span-4'}`}
       />
       <div className="flex gap-2.5 sm:col-span-6 sm:justify-end">
         {editando && (

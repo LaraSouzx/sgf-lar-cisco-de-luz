@@ -20,6 +20,7 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     tipo: 'saida',
     categoriaId: 'c1',
     descricao: '  Conta de luz  ',
+    doadorId: null,
     ...overrides,
   }
 }
@@ -33,7 +34,24 @@ describe('validarLancamento', () => {
         tipo: 'saida',
         categoriaId: 'c1',
         descricao: 'Conta de luz',
+        doadorId: null,
       },
+    })
+  })
+
+  it('aceita doador em uma entrada', () => {
+    const resultado = validarLancamento(
+      formulario({ tipo: 'entrada', categoriaId: 'c2', doadorId: 'd1' }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toMatchObject({ lancamento: { doadorId: 'd1' } })
+  })
+
+  it('recusa doador em uma saída', () => {
+    expect(validarLancamento(formulario({ tipo: 'saida', doadorId: 'd1' }), categorias, HOJE)).toEqual({
+      erro: 'Só entradas podem ter doador',
     })
   })
 
