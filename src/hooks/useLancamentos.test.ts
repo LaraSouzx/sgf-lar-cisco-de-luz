@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { irParaEndereco } from '../lib/navegador'
 import * as comprovanteService from '../services/comprovanteService'
 import * as lancamentosService from '../services/lancamentosService'
 import type { Categoria } from '../types/categoria'
@@ -9,6 +10,7 @@ import type { FormularioLancamento } from './validarLancamento'
 
 vi.mock('../services/lancamentosService')
 vi.mock('../services/comprovanteService')
+vi.mock('../lib/navegador')
 
 const luz: Categoria = { id: 'c1', nome: 'Luz', tipo: 'saida', ativa: true }
 const categorias = [luz]
@@ -323,42 +325,44 @@ describe('useLancamentos', () => {
   })
 
   describe('abrirComprovante', () => {
-    // A aba é aberta no clique e só depois recebe o endereço: o navegador bloqueia abas abertas após uma espera.
-    function abaFalsa() {
-      const aba = { location: { href: '' }, close: vi.fn(), opener: {} as unknown }
-      vi.spyOn(window, 'open').mockReturnValue(aba as unknown as Window)
-      return aba
-    }
-
-    it('abre uma aba e a leva ao link temporário do comprovante', async () => {
-      const aba = abaFalsa()
+    it.each(['abc.jpg', 'abc.png', 'abc.webp'])('foto (%s): expõe o link para abrir num modal, sem sair da tela', async (caminho) => {
       const { result } = await renderCarregado()
-      vi.mocked(comprovanteService.gerarLinkComprovante).mockResolvedValue('https://exemplo.com/link')
+      vi.mocked(comprovanteService.gerarLinkComprovante).mockResolvedValue('https://exemplo.com/foto')
+
+      await act(async () => {
+        await result.current.abrirComprovante(caminho)
+      })
+
+      expect(comprovanteService.gerarLinkComprovante).toHaveBeenCalledWith(caminho)
+      expect(result.current.comprovanteAberto).toBe('https://exemplo.com/foto')
+      expect(irParaEndereco).not.toHaveBeenCalled()
+    })
+
+    it('PDF: leva a própria aba para o link, sem abrir modal', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(comprovanteService.gerarLinkComprovante).mockResolvedValue('https://exemplo.com/nota')
 
       await act(async () => {
         await result.current.abrirComprovante('abc.pdf')
       })
 
-      expect(comprovanteService.gerarLinkComprovante).toHaveBeenCalledWith('abc.pdf')
-      expect(aba.location.href).toBe('https://exemplo.com/link')
-      // A aba não pode ter acesso à página do sistema.
-      expect(aba.opener).toBeNull()
+      expect(irParaEndereco).toHaveBeenCalledWith('https://exemplo.com/nota')
+      expect(result.current.comprovanteAberto).toBeNull()
     })
 
-    it('pede para liberar pop-ups quando o navegador bloqueia a aba, sem gerar o link', async () => {
-      vi.spyOn(window, 'open').mockReturnValue(null)
+    it('fecharComprovante esconde o modal', async () => {
       const { result } = await renderCarregado()
-
+      vi.mocked(comprovanteService.gerarLinkComprovante).mockResolvedValue('https://exemplo.com/foto')
       await act(async () => {
-        await result.current.abrirComprovante('abc.pdf')
+        await result.current.abrirComprovante('abc.jpg')
       })
 
-      expect(result.current.error).toBe('Libere as janelas pop-up do navegador para abrir o comprovante')
-      expect(comprovanteService.gerarLinkComprovante).not.toHaveBeenCalled()
+      act(() => result.current.fecharComprovante())
+
+      expect(result.current.comprovanteAberto).toBeNull()
     })
 
-    it('fecha a aba e mostra erro quando não consegue gerar o link', async () => {
-      const aba = abaFalsa()
+    it('mostra erro genérico e não abre nada quando não consegue gerar o link', async () => {
       const { result } = await renderCarregado()
       vi.mocked(comprovanteService.gerarLinkComprovante).mockRejectedValue(
         new Error('Não foi possível abrir o comprovante'),
@@ -368,8 +372,9 @@ describe('useLancamentos', () => {
         await result.current.abrirComprovante('abc.pdf')
       })
 
-      expect(aba.close).toHaveBeenCalled()
       expect(result.current.error).toBe('Não foi possível abrir o comprovante')
+      expect(result.current.comprovanteAberto).toBeNull()
+      expect(irParaEndereco).not.toHaveBeenCalled()
     })
   })
 })

@@ -5,6 +5,8 @@ import {
   editarLancamento,
   listLancamentos,
 } from '../services/lancamentosService'
+import { irParaEndereco } from '../lib/navegador'
+import { ehPdf } from '../lib/regrasDeComprovante'
 import { enviarComprovante, gerarLinkComprovante } from '../services/comprovanteService'
 import type { Categoria } from '../types/categoria'
 import type { Lancamento, NovoLancamento, TipoLancamento } from '../types/lancamento'
@@ -17,6 +19,7 @@ export type FiltroLancamentos = { tipo?: TipoLancamento; mes?: string; semCompro
 export function useLancamentos({ tipo, mes, semComprovante }: FiltroLancamentos, categorias: Categoria[]) {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [comprovanteAberto, setComprovanteAberto] = useState<string | null>(null)
   const ultimaRequisicao = useRef(0)
 
   const carregar = useCallback(() => {
@@ -68,23 +71,31 @@ export function useLancamentos({ tipo, mes, semComprovante }: FiltroLancamentos,
     return salvar(() => cancelarLancamento(id))
   }
 
+  // Foto abre num modal na própria tela (o link fica em `comprovanteAberto`); PDF leva a aba para o leitor do navegador.
   async function abrirComprovante(caminho: string) {
-    // A aba precisa ser aberta já no clique: o navegador bloqueia abas abertas depois de uma espera.
-    const aba = window.open('', '_blank')
-    if (!aba) {
-      setError('Libere as janelas pop-up do navegador para abrir o comprovante')
-      return
-    }
-    // A aba nunca deve ter acesso à página do sistema.
-    aba.opener = null
-
+    setError(null)
     try {
-      aba.location.href = await gerarLinkComprovante(caminho)
+      const link = await gerarLinkComprovante(caminho)
+      if (ehPdf(caminho)) irParaEndereco(link)
+      else setComprovanteAberto(link)
     } catch (err) {
-      aba.close()
       setError(err instanceof Error ? err.message : 'Não foi possível abrir o comprovante')
     }
   }
 
-  return { lancamentos, isLoading, error, criar, editar, cancelar, abrirComprovante }
+  function fecharComprovante() {
+    setComprovanteAberto(null)
+  }
+
+  return {
+    lancamentos,
+    isLoading,
+    error,
+    criar,
+    editar,
+    cancelar,
+    abrirComprovante,
+    comprovanteAberto,
+    fecharComprovante,
+  }
 }

@@ -15,3 +15,8 @@ export const EXTENSAO_POR_TIPO: Record<string, string> = {
 }
 
 export const TIPOS_ACEITOS = Object.keys(EXTENSAO_POR_TIPO)
+
+// O caminho é gerado pelo próprio sistema com a extensão do tipo (ver EXTENSAO_POR_TIPO).
+export function ehPdf(caminho: string) {
+  return caminho.endsWith('.pdf')
+}

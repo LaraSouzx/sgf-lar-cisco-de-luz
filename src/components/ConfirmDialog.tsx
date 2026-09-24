@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useFecharComEsc } from '../hooks/useFecharComEsc'
 
 type ConfirmDialogProps = {
   titulo: string
@@ -9,14 +9,7 @@ type ConfirmDialogProps = {
 }
 
 export function ConfirmDialog({ titulo, mensagem, textoConfirmar, onConfirmar, onCancelar }: ConfirmDialogProps) {
-  // Esc cancela, como no confirm nativo.
-  useEffect(() => {
-    function aoPressionarTecla(event: KeyboardEvent) {
-      if (event.key === 'Escape') onCancelar()
-    }
-    window.addEventListener('keydown', aoPressionarTecla)
-    return () => window.removeEventListener('keydown', aoPressionarTecla)
-  }, [onCancelar])
+  useFecharComEsc(onCancelar)
 
   return (
     <div

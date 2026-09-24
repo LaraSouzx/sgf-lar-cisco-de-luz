@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AppShell } from '../components/AppShell'
+import { ComprovanteDialog } from '../components/ComprovanteDialog'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { classeBotao, classeCampo } from '../components/estilos'
 import { LancamentoForm } from '../components/LancamentoForm'
@@ -95,6 +96,8 @@ export function Lancamentos() {
     editar,
     cancelar,
     abrirComprovante,
+    comprovanteAberto,
+    fecharComprovante,
   } = useLancamentos(filtro, categorias)
   const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
@@ -187,6 +190,8 @@ export function Lancamentos() {
           </ul>
         </section>
       </div>
+
+      {comprovanteAberto && <ComprovanteDialog endereco={comprovanteAberto} onFechar={fecharComprovante} />}
 
       {aCancelar && (
         <ConfirmDialog
