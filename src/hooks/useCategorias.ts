@@ -7,6 +7,7 @@ import {
   reativarCategoria,
 } from '../services/categoriaService'
 import type { Categoria } from '../types/categoria'
+import { useSalvarERecarregar } from './useSalvarERecarregar'
 
 // Feedback imediato no formulário; a constraint UNIQUE no banco continua sendo a garantia real.
 // `idIgnorado` evita acusar duplicidade da categoria com ela mesma ao editar.
@@ -22,28 +23,15 @@ function validarNome(nome: string, categorias: Categoria[], idIgnorado?: string)
 export function useCategorias() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const carregar = useCallback(() => listarCategorias().then(setCategorias), [])
+  const { error, setError, salvar } = useSalvarERecarregar(carregar, 'Erro ao salvar a categoria')
 
   useEffect(() => {
     carregar()
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar as categorias'))
       .finally(() => setIsLoading(false))
-  }, [carregar])
-
-  // Executa uma alteração e recarrega a lista; devolve se deu certo para o formulário saber se pode limpar.
-  async function salvar(alteracao: () => Promise<void>) {
-    setError(null)
-    try {
-      await alteracao()
-      await carregar()
-      return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar a categoria')
-      return false
-    }
-  }
+  }, [carregar, setError])
 
   // Só chama o service se o nome passar na validação do formulário.
   function salvarComNomeValido(nome: string, idIgnorado: string | undefined, alteracao: (nomeLimpo: string) => Promise<void>) {

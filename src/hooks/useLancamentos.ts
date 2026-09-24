@@ -7,6 +7,7 @@ import {
 } from '../services/lancamentosService'
 import type { Categoria } from '../types/categoria'
 import type { Lancamento, NovoLancamento, TipoLancamento } from '../types/lancamento'
+import { useSalvarERecarregar } from './useSalvarERecarregar'
 import { validarLancamento, type FormularioLancamento } from './validarLancamento'
 
 export type FiltroLancamentos = { tipo?: TipoLancamento; mes?: string }
@@ -22,7 +23,6 @@ function intervaloDoMes(mes?: string) {
 export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Categoria[]) {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const ultimaRequisicao = useRef(0)
 
   const carregar = useCallback(() => {
@@ -33,25 +33,14 @@ export function useLancamentos({ tipo, mes }: FiltroLancamentos, categorias: Cat
     })
   }, [tipo, mes])
 
+  const { error, setError, salvar } = useSalvarERecarregar(carregar, 'Erro ao salvar o lançamento')
+
   useEffect(() => {
     carregar()
       .then(() => setError(null))
       .catch((err) => setError(err instanceof Error ? err.message : 'Erro ao carregar os lançamentos'))
       .finally(() => setIsLoading(false))
-  }, [carregar])
-
-  // Executa uma alteração e recarrega a lista; devolve se deu certo para o formulário saber se pode fechar.
-  async function salvar(alteracao: () => Promise<void>) {
-    setError(null)
-    try {
-      await alteracao()
-      await carregar()
-      return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar o lançamento')
-      return false
-    }
-  }
+  }, [carregar, setError])
 
   // Só chama o service se o formulário passar na validação.
   function salvarSeValido(
