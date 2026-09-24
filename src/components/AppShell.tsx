@@ -69,7 +69,7 @@ const itensPrincipais: NavItem[] = [
   { label: 'Visão geral', icon: iconVisaoGeral, to: '/' },
   { label: 'Lançamentos', icon: iconLancamentos, to: '/lancamentos' },
   { label: 'Categorias', icon: iconCategorias, to: '/categorias' },
-  { label: 'Doadores', icon: iconDoadores },
+  { label: 'Doadores', icon: iconDoadores, to: '/doadores' },
   { label: 'Relatórios', icon: iconRelatorios },
 ]
 

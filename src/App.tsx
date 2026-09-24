@@ -3,6 +3,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 import { Categorias } from './pages/Categorias'
 import { Dashboard } from './pages/Dashboard'
+import { Doadores } from './pages/Doadores'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { Lancamentos } from './pages/Lancamentos'
 import { Login } from './pages/Login'
@@ -20,6 +21,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/categorias" element={<Categorias />} />
+            <Route path="/doadores" element={<Doadores />} />
           </Route>
         </Routes>
       </AuthProvider>
