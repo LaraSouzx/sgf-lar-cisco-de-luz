@@ -13,15 +13,17 @@ function LinhaCategoria({
   onEditar,
   onDesativar,
   onReativar,
+  onExcluir,
 }: {
   categoria: Categoria
   onEditar: (id: string, nome: string) => Promise<boolean>
   onDesativar: (id: string) => void
   onReativar: (id: string) => void
+  onExcluir: (id: string) => void
 }) {
   const [editando, setEditando] = useState(false)
   const [nome, setNome] = useState(categoria.nome)
-  const [confirmando, setConfirmando] = useState(false)
+  const [confirmando, setConfirmando] = useState<'desativar' | 'excluir' | null>(null)
 
   async function salvar(event: FormEvent) {
     event.preventDefault()
@@ -33,9 +35,10 @@ function LinhaCategoria({
     setEditando(false)
   }
 
-  function confirmarDesativacao() {
-    setConfirmando(false)
-    onDesativar(categoria.id)
+  function confirmar() {
+    if (confirmando === 'desativar') onDesativar(categoria.id)
+    if (confirmando === 'excluir') onExcluir(categoria.id)
+    setConfirmando(null)
   }
 
   return (
@@ -68,7 +71,7 @@ function LinhaCategoria({
               <button type="button" onClick={() => setEditando(true)} className={`${classeBotao} text-[#141a14]`}>
                 Editar
               </button>
-              <button type="button" onClick={() => setConfirmando(true)} className={`${classeBotao} text-[#b3261e]`}>
+              <button type="button" onClick={() => setConfirmando('desativar')} className={`${classeBotao} text-[#b3261e]`}>
                 Desativar
               </button>
             </>
@@ -80,15 +83,27 @@ function LinhaCategoria({
               </button>
             </>
           )}
+          <button type="button" onClick={() => setConfirmando('excluir')} className={`${classeBotao} text-[#b3261e]`}>
+            Excluir
+          </button>
         </>
       )}
-      {confirmando && (
+      {confirmando === 'desativar' && (
         <ConfirmDialog
           titulo={`Desativar "${categoria.nome}"?`}
           mensagem="Ela deixa de aparecer em novos lançamentos, mas continua nos lançamentos antigos."
           textoConfirmar="Desativar"
-          onConfirmar={confirmarDesativacao}
-          onCancelar={() => setConfirmando(false)}
+          onConfirmar={confirmar}
+          onCancelar={() => setConfirmando(null)}
+        />
+      )}
+      {confirmando === 'excluir' && (
+        <ConfirmDialog
+          titulo={`Excluir "${categoria.nome}"?`}
+          mensagem="A categoria é apagada de vez e isso não pode ser desfeito. Só é possível se ela não tiver nenhum lançamento; se tiver, use Desativar."
+          textoConfirmar="Excluir"
+          onConfirmar={confirmar}
+          onCancelar={() => setConfirmando(null)}
         />
       )}
     </li>
@@ -96,7 +111,7 @@ function LinhaCategoria({
 }
 
 export function Categorias() {
-  const { categorias, isLoading, error, criar, editar, desativar, reativar } = useCategorias()
+  const { categorias, isLoading, error, criar, editar, desativar, reativar, excluir } = useCategorias()
   const [nome, setNome] = useState('')
   const [tipo, setTipo] = useState<Categoria['tipo']>('saida')
 
@@ -153,6 +168,7 @@ export function Categorias() {
                 onEditar={editar}
                 onDesativar={desativar}
                 onReativar={reativar}
+                onExcluir={excluir}
               />
             ))}
           </ul>

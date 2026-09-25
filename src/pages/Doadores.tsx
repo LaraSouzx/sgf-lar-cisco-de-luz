@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AppShell } from '../components/AppShell'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DoadorForm } from '../components/DoadorForm'
 import { classeBotao, classeCampo } from '../components/estilos'
 import { useDoadores, type FormularioDoador } from '../hooks/useDoadores'
@@ -8,7 +9,15 @@ import type { Doador } from '../types/doador'
 
 const ROTULO_TIPO: Record<Doador['tipo'], string> = { pessoa_fisica: 'Pessoa física', empresa: 'Empresa' }
 
-function LinhaDoador({ doador, onEditar }: { doador: Doador; onEditar: () => void }) {
+function LinhaDoador({
+  doador,
+  onEditar,
+  onExcluir,
+}: {
+  doador: Doador
+  onEditar: () => void
+  onExcluir: () => void
+}) {
   return (
     <li className="flex min-h-14 flex-wrap items-center gap-3 border-b border-[#e8ede5] py-2 last:border-0">
       <div className="flex min-w-40 flex-1 flex-col">
@@ -23,18 +32,30 @@ function LinhaDoador({ doador, onEditar }: { doador: Doador; onEditar: () => voi
       <button type="button" onClick={onEditar} className={`${classeBotao} text-[#141a14]`}>
         Editar
       </button>
+      <button type="button" onClick={onExcluir} className={`${classeBotao} text-[#b3261e]`}>
+        Excluir
+      </button>
     </li>
   )
 }
 
 export function Doadores() {
-  const { doadores, isLoading, error, busca, setBusca, criar, editar } = useDoadores()
+  const { doadores, isLoading, error, busca, setBusca, criar, editar, excluir } = useDoadores()
   const [emEdicao, setEmEdicao] = useState<Doador>()
+  const [aExcluir, setAExcluir] = useState<Doador>()
 
   async function salvar(formulario: FormularioDoador) {
     const salvou = emEdicao ? await editar(emEdicao.id, formulario) : await criar(formulario)
     if (salvou) setEmEdicao(undefined)
     return salvou
+  }
+
+  async function confirmarExclusao() {
+    if (!aExcluir) return
+    const { id } = aExcluir
+    setAExcluir(undefined)
+    // Se estava editando o doador que acabou de excluir, fecha o formulário de edição.
+    if (await excluir(id)) setEmEdicao((atual) => (atual?.id === id ? undefined : atual))
   }
 
   return (
@@ -77,11 +98,26 @@ export function Doadores() {
           )}
           <ul className="m-0 list-none p-0">
             {doadores.map((doador) => (
-              <LinhaDoador key={doador.id} doador={doador} onEditar={() => setEmEdicao(doador)} />
+              <LinhaDoador
+                key={doador.id}
+                doador={doador}
+                onEditar={() => setEmEdicao(doador)}
+                onExcluir={() => setAExcluir(doador)}
+              />
             ))}
           </ul>
         </section>
       </div>
+
+      {aExcluir && (
+        <ConfirmDialog
+          titulo={`Excluir "${aExcluir.nome}"?`}
+          mensagem="O doador é apagado de vez e isso não pode ser desfeito. Só é possível se não houver nenhum lançamento ligado a ele."
+          textoConfirmar="Excluir"
+          onConfirmar={confirmarExclusao}
+          onCancelar={() => setAExcluir(undefined)}
+        />
+      )}
     </AppShell>
   )
 }
