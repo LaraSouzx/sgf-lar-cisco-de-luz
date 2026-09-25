@@ -3,18 +3,21 @@ import {
   criarCategoria,
   desativarCategoria,
   editarCategoria,
+  excluirCategoria,
   listarCategorias,
   reativarCategoria,
 } from './categoriaService'
 
-const { order, insert, eq, update, from } = vi.hoisted(() => {
+const { order, insert, eq, update, excluirEq, excluir, from } = vi.hoisted(() => {
   const order = vi.fn()
   const select = vi.fn(() => ({ order }))
   const insert = vi.fn()
   const eq = vi.fn()
   const update = vi.fn(() => ({ eq }))
-  const from = vi.fn((_table: string) => ({ select, insert, update }))
-  return { order, insert, eq, update, from }
+  const excluirEq = vi.fn()
+  const excluir = vi.fn(() => ({ eq: excluirEq }))
+  const from = vi.fn((_table: string) => ({ select, insert, update, delete: excluir }))
+  return { order, insert, eq, update, excluirEq, excluir, from }
 })
 
 vi.mock('../lib/supabaseClient', () => ({
@@ -120,6 +123,33 @@ describe('categoriaService', () => {
       eq.mockResolvedValue({ error: { code: '42501', message: 'rls violation' } })
 
       await expect(desativarCategoria('c1')).rejects.toThrow('Não foi possível salvar a categoria')
+    })
+  })
+
+  describe('excluirCategoria', () => {
+    it('exclui a categoria informada da tabela categorias', async () => {
+      excluirEq.mockResolvedValue({ error: null })
+
+      await excluirCategoria('c1')
+
+      expect(from).toHaveBeenCalledWith('categorias')
+      expect(excluir).toHaveBeenCalled()
+      expect(excluirEq).toHaveBeenCalledWith('id', 'c1')
+    })
+
+    // O banco recusa a exclusão (chave estrangeira) quando ainda há lançamentos na categoria.
+    it('explica que não dá para excluir quando já há lançamentos ligados', async () => {
+      excluirEq.mockResolvedValue({ error: { code: '23503', message: 'foreign key violation' } })
+
+      await expect(excluirCategoria('c1')).rejects.toThrow(
+        'Não é possível excluir: já há lançamentos nesta categoria. Desative-a para que ela deixe de aparecer.',
+      )
+    })
+
+    it('lança mensagem genérica para qualquer outro erro do Supabase', async () => {
+      excluirEq.mockResolvedValue({ error: { code: '42501', message: 'rls violation' } })
+
+      await expect(excluirCategoria('c1')).rejects.toThrow('Não foi possível excluir a categoria')
     })
   })
 })

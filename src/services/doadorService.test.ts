@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { criarDoador, editarDoador, listarDoadores } from './doadorService'
+import { criarDoador, editarDoador, excluirDoador, listarDoadores } from './doadorService'
 
-const { order, select, insert, updateEq, update, from } = vi.hoisted(() => {
+const { order, select, insert, updateEq, update, excluirEq, excluir, from } = vi.hoisted(() => {
   const order = vi.fn()
   const select = vi.fn(() => ({ order }))
   const insert = vi.fn()
   const updateEq = vi.fn()
   const update = vi.fn(() => ({ eq: updateEq }))
-  const from = vi.fn((_table: string) => ({ select, insert, update }))
-  return { order, select, insert, updateEq, update, from }
+  const excluirEq = vi.fn()
+  const excluir = vi.fn(() => ({ eq: excluirEq }))
+  const from = vi.fn((_table: string) => ({ select, insert, update, delete: excluir }))
+  return { order, select, insert, updateEq, update, excluirEq, excluir, from }
 })
 
 vi.mock('../lib/supabaseClient', () => ({
@@ -93,6 +95,33 @@ describe('doadorService', () => {
       updateEq.mockResolvedValue({ error: { message: 'db error' } })
 
       await expect(editarDoador('d1', dadosDoador)).rejects.toThrow('Não foi possível salvar o doador')
+    })
+  })
+
+  describe('excluirDoador', () => {
+    it('exclui o doador informado da tabela doadores', async () => {
+      excluirEq.mockResolvedValue({ error: null })
+
+      await excluirDoador('d1')
+
+      expect(from).toHaveBeenCalledWith('doadores')
+      expect(excluir).toHaveBeenCalled()
+      expect(excluirEq).toHaveBeenCalledWith('id', 'd1')
+    })
+
+    // O banco recusa a exclusão (chave estrangeira) quando ainda há lançamentos ligados ao doador.
+    it('explica que não dá para excluir quando já há lançamentos ligados', async () => {
+      excluirEq.mockResolvedValue({ error: { code: '23503', message: 'foreign key violation' } })
+
+      await expect(excluirDoador('d1')).rejects.toThrow(
+        'Não é possível excluir: já há lançamentos ligados a este doador.',
+      )
+    })
+
+    it('lança mensagem genérica para qualquer outro erro do Supabase', async () => {
+      excluirEq.mockResolvedValue({ error: { code: '42501', message: 'rls violation' } })
+
+      await expect(excluirDoador('d1')).rejects.toThrow('Não foi possível excluir o doador')
     })
   })
 })
