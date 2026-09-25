@@ -224,4 +224,37 @@ describe('useDoadores', () => {
       })
     })
   })
+
+  describe('excluir', () => {
+    it('exclui o doador e ele some da lista', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(doadorService.excluirDoador).mockResolvedValue(undefined)
+      vi.mocked(doadorService.listarDoadores).mockResolvedValue([jose, padaria])
+
+      let excluiu = false
+      await act(async () => {
+        excluiu = await result.current.excluir('d1')
+      })
+
+      expect(excluiu).toBe(true)
+      expect(doadorService.excluirDoador).toHaveBeenCalledWith('d1')
+      expect(result.current.doadores).toEqual([jose, padaria])
+    })
+
+    it('mostra a orientação do service e mantém a lista quando não pode excluir', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(doadorService.excluirDoador).mockRejectedValue(
+        new Error('Não é possível excluir: já há lançamentos ligados a este doador.'),
+      )
+
+      let excluiu = true
+      await act(async () => {
+        excluiu = await result.current.excluir('d1')
+      })
+
+      expect(excluiu).toBe(false)
+      expect(result.current.error).toBe('Não é possível excluir: já há lançamentos ligados a este doador.')
+      expect(result.current.doadores).toEqual([maria, jose, padaria])
+    })
+  })
 })

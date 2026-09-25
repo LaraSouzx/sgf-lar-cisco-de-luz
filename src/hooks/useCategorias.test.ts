@@ -194,4 +194,37 @@ describe('useCategorias', () => {
       expect(result.current.error).toBe('Não foi possível salvar a categoria')
     })
   })
+
+  describe('excluir', () => {
+    it('exclui a categoria e ela some da lista', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(categoriaService.excluirCategoria).mockResolvedValue(undefined)
+      vi.mocked(categoriaService.listarCategorias).mockResolvedValue([doacao])
+
+      let excluiu = false
+      await act(async () => {
+        excluiu = await result.current.excluir('c1')
+      })
+
+      expect(excluiu).toBe(true)
+      expect(categoriaService.excluirCategoria).toHaveBeenCalledWith('c1')
+      expect(result.current.categorias).toEqual([doacao])
+    })
+
+    it('mostra a orientação do service e mantém a lista quando não pode excluir', async () => {
+      const { result } = await renderCarregado()
+      vi.mocked(categoriaService.excluirCategoria).mockRejectedValue(
+        new Error('Não é possível excluir: já há lançamentos nesta categoria.'),
+      )
+
+      let excluiu = true
+      await act(async () => {
+        excluiu = await result.current.excluir('c1')
+      })
+
+      expect(excluiu).toBe(false)
+      expect(result.current.error).toBe('Não é possível excluir: já há lançamentos nesta categoria.')
+      expect(result.current.categorias).toEqual([aluguel, doacao])
+    })
+  })
 })

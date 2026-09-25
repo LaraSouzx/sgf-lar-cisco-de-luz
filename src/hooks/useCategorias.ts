@@ -3,6 +3,7 @@ import {
   criarCategoria,
   desativarCategoria,
   editarCategoria,
+  excluirCategoria,
   listarCategorias,
   reativarCategoria,
 } from '../services/categoriaService'
@@ -61,5 +62,9 @@ export function useCategorias() {
     return salvar(() => reativarCategoria(id))
   }
 
-  return { categorias, isLoading, error, criar, editar, desativar, reativar }
+  function excluir(id: string) {
+    return salvar(() => excluirCategoria(id))
+  }
+
+  return { categorias, isLoading, error, criar, editar, desativar, reativar, excluir }
 }

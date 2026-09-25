@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { criarDoador, editarDoador, listarDoadores } from '../services/doadorService'
+import { criarDoador, editarDoador, excluirDoador, listarDoadores } from '../services/doadorService'
 import type { Doador, TipoDoador } from '../types/doador'
 import { useSalvarERecarregar } from './useSalvarERecarregar'
 import { normalizarDocumento, validarDocumento } from './validarDocumento'
@@ -66,5 +66,9 @@ export function useDoadores() {
   const termoBusca = semAcentoEmMinusculas(busca.trim())
   const doadoresFiltrados = doadores.filter((doador) => semAcentoEmMinusculas(doador.nome).includes(termoBusca))
 
-  return { doadores: doadoresFiltrados, isLoading, error, busca, setBusca, criar, editar }
+  function excluir(id: string) {
+    return salvar(() => excluirDoador(id))
+  }
+
+  return { doadores: doadoresFiltrados, isLoading, error, busca, setBusca, criar, editar, excluir }
 }
