@@ -235,6 +235,39 @@ describe('useLancamentos', () => {
     })
   })
 
+  describe('excluir', () => {
+    it('exclui o lançamento cancelado e ele some da lista', async () => {
+      const { result } = await renderCarregado([lancamento({ id: 'l1', cancelado: true })])
+      vi.mocked(lancamentosService.excluirLancamento).mockResolvedValue(undefined)
+      vi.mocked(lancamentosService.listLancamentos).mockResolvedValue([])
+
+      let excluiu = false
+      await act(async () => {
+        excluiu = await result.current.excluir('l1')
+      })
+
+      expect(excluiu).toBe(true)
+      expect(lancamentosService.excluirLancamento).toHaveBeenCalledWith('l1')
+      expect(result.current.lancamentos).toEqual([])
+    })
+
+    it('mostra a orientação do service e mantém a lista quando não pode excluir', async () => {
+      const { result } = await renderCarregado([lancamento({ id: 'l1' })])
+      vi.mocked(lancamentosService.excluirLancamento).mockRejectedValue(
+        new Error('Só é possível excluir um lançamento que já foi cancelado.'),
+      )
+
+      let excluiu = true
+      await act(async () => {
+        excluiu = await result.current.excluir('l1')
+      })
+
+      expect(excluiu).toBe(false)
+      expect(result.current.error).toBe('Só é possível excluir um lançamento que já foi cancelado.')
+      expect(result.current.lancamentos).toHaveLength(1)
+    })
+  })
+
   describe('comprovante', () => {
     it('envia o arquivo antes de salvar e grava o caminho devolvido no lançamento', async () => {
       const { result } = await renderCarregado([])

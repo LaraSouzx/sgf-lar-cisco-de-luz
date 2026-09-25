@@ -3,6 +3,7 @@ import {
   cancelarLancamento,
   criarLancamento,
   editarLancamento,
+  excluirLancamento,
   listLancamentos,
 } from '../services/lancamentosService'
 import { irParaEndereco } from '../lib/navegador'
@@ -71,6 +72,10 @@ export function useLancamentos({ tipo, mes, semComprovante }: FiltroLancamentos,
     return salvar(() => cancelarLancamento(id))
   }
 
+  function excluir(id: string) {
+    return salvar(() => excluirLancamento(id))
+  }
+
   // Foto abre num modal na própria tela (o link fica em `comprovanteAberto`); PDF leva a aba para o leitor do navegador.
   async function abrirComprovante(caminho: string) {
     setError(null)
@@ -94,6 +99,7 @@ export function useLancamentos({ tipo, mes, semComprovante }: FiltroLancamentos,
     criar,
     editar,
     cancelar,
+    excluir,
     abrirComprovante,
     comprovanteAberto,
     fecharComprovante,
