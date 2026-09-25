@@ -3,10 +3,12 @@ import {
   cancelarLancamento,
   criarLancamento,
   editarLancamento,
+  excluirLancamento,
   listLancamentos,
 } from './lancamentosService'
 
-const { order, lte, gte, eq, is, select, insert, update, updateEq, from } = vi.hoisted(() => {
+const { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from } =
+  vi.hoisted(() => {
   const order = vi.fn()
   // Os filtros da listagem são opcionais e encadeáveis em qualquer combinação.
   const consulta: Record<string, unknown> = { order }
@@ -20,9 +22,12 @@ const { order, lte, gte, eq, is, select, insert, update, updateEq, from } = vi.h
   const insert = vi.fn()
   const updateEq = vi.fn()
   const update = vi.fn(() => ({ eq: updateEq }))
-  const from = vi.fn((_table: string) => ({ select, insert, update }))
-  return { order, lte, gte, eq, is, select, insert, update, updateEq, from }
-})
+  const excluirSelect = vi.fn()
+  const excluirMatch = vi.fn(() => ({ select: excluirSelect }))
+  const excluir = vi.fn(() => ({ match: excluirMatch }))
+  const from = vi.fn((_table: string) => ({ select, insert, update, delete: excluir }))
+  return { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from }
+  })
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: { from },
@@ -244,6 +249,33 @@ describe('lancamentosService', () => {
       updateEq.mockResolvedValue({ error: { message: 'db error' } })
 
       await expect(cancelarLancamento('l1')).rejects.toThrow('Não foi possível cancelar o lançamento')
+    })
+  })
+
+  describe('excluirLancamento', () => {
+    it('exclui só o lançamento informado, e apenas se ele já estiver cancelado', async () => {
+      excluirSelect.mockResolvedValue({ data: [{ id: 'l1' }], error: null })
+
+      await excluirLancamento('l1')
+
+      expect(from).toHaveBeenCalledWith('lancamentos')
+      expect(excluir).toHaveBeenCalled()
+      expect(excluirMatch).toHaveBeenCalledWith({ id: 'l1', cancelado: true })
+    })
+
+    // O banco ignora em silêncio um DELETE que não casa com a regra (0 linhas), então o service confere.
+    it('avisa que só é possível excluir lançamento cancelado quando nada foi excluído', async () => {
+      excluirSelect.mockResolvedValue({ data: [], error: null })
+
+      await expect(excluirLancamento('l1')).rejects.toThrow(
+        'Só é possível excluir um lançamento que já foi cancelado.',
+      )
+    })
+
+    it('lança mensagem genérica quando o Supabase retorna erro', async () => {
+      excluirSelect.mockResolvedValue({ data: null, error: { message: 'db error' } })
+
+      await expect(excluirLancamento('l1')).rejects.toThrow('Não foi possível excluir o lançamento')
     })
   })
 })

@@ -104,11 +104,28 @@ export async function editarLancamento(id: string, lancamento: EdicaoLancamento)
   }
 }
 
-// Lançamento nunca é excluído (histórico da prestação de contas): por isso não existe função de exclusão.
+// Cancelar é o caminho normal: mantém o histórico da prestação de contas.
 export async function cancelarLancamento(id: string) {
   const { error } = await supabase.from('lancamentos').update({ cancelado: true }).eq('id', id)
 
   if (error) {
     throw new Error('Não foi possível cancelar o lançamento')
+  }
+}
+
+// Excluir de vez só vale para lançamento já cancelado (o banco também exige isso). Como o Postgres
+// ignora em silêncio um DELETE que não casa com a regra, pedimos as linhas apagadas de volta para conferir.
+export async function excluirLancamento(id: string) {
+  const { data, error } = await supabase
+    .from('lancamentos')
+    .delete()
+    .match({ id, cancelado: true })
+    .select('id')
+
+  if (error) {
+    throw new Error('Não foi possível excluir o lançamento')
+  }
+  if (!data?.length) {
+    throw new Error('Só é possível excluir um lançamento que já foi cancelado.')
   }
 }
