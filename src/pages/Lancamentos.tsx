@@ -34,11 +34,13 @@ function LinhaLancamento({
   lancamento,
   onEditar,
   onCancelar,
+  onExcluir,
   onVerComprovante,
 }: {
   lancamento: Lancamento
   onEditar: () => void
   onCancelar: () => void
+  onExcluir: () => void
   onVerComprovante: (caminho: string) => void
 }) {
   const entrada = lancamento.tipo === 'entrada'
@@ -60,7 +62,12 @@ function LinhaLancamento({
         {entrada ? '+' : '−'} {formatarValorEmReais(lancamento.valor)}
       </span>
       {lancamento.cancelado ? (
-        <span className="text-right text-xs text-[#8b968a]">Cancelado</span>
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          <span className="text-xs text-[#8b968a]">Cancelado</span>
+          <button type="button" onClick={onExcluir} className={`${classeBotao} text-[#b3261e]`}>
+            Excluir
+          </button>
+        </span>
       ) : (
         <span className="flex flex-wrap items-center justify-end">
           {caminhoDoComprovante ? (
@@ -100,6 +107,7 @@ export function Lancamentos() {
     criar,
     editar,
     cancelar,
+    excluir,
     abrirComprovante,
     comprovanteAberto,
     fecharComprovante,
@@ -107,6 +115,7 @@ export function Lancamentos() {
   const error = erroLancamentos ?? erroCategorias
   const [emEdicao, setEmEdicao] = useState<Lancamento>()
   const [aCancelar, setACancelar] = useState<Lancamento>()
+  const [aExcluir, setAExcluir] = useState<Lancamento>()
   const [mostrarTodos, setMostrarTodos] = useState(false)
   // A lista já vem do mais recente para o mais antigo, então os primeiros são os mais recentes.
   const lancamentosVisiveis = mostrarTodos ? lancamentos : lancamentos.slice(0, QUANTIDADE_INICIAL)
@@ -123,6 +132,13 @@ export function Lancamentos() {
     setACancelar(undefined)
     // Se estava editando o lançamento que acabou de cancelar, fecha o formulário de edição.
     if (await cancelar(id)) setEmEdicao((atual) => (atual?.id === id ? undefined : atual))
+  }
+
+  async function confirmarExclusao() {
+    if (!aExcluir) return
+    const { id } = aExcluir
+    setAExcluir(undefined)
+    await excluir(id)
   }
 
   return (
@@ -193,6 +209,7 @@ export function Lancamentos() {
                 lancamento={lancamento}
                 onEditar={() => setEmEdicao(lancamento)}
                 onCancelar={() => setACancelar(lancamento)}
+                onExcluir={() => setAExcluir(lancamento)}
                 onVerComprovante={abrirComprovante}
               />
             ))}
@@ -215,6 +232,16 @@ export function Lancamentos() {
       </div>
 
       {comprovanteAberto && <ComprovanteDialog endereco={comprovanteAberto} onFechar={fecharComprovante} />}
+
+      {aExcluir && (
+        <ConfirmDialog
+          titulo={`Excluir "${aExcluir.descricao}"?`}
+          mensagem="O lançamento é apagado de vez e isso não pode ser desfeito: ele some também do histórico. Se o comprovante estiver anexado, o arquivo continua guardado, mas sem lançamento ligado."
+          textoConfirmar="Excluir"
+          onConfirmar={confirmarExclusao}
+          onCancelar={() => setAExcluir(undefined)}
+        />
+      )}
 
       {aCancelar && (
         <ConfirmDialog
