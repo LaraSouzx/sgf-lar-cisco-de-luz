@@ -1,0 +1,20 @@
+# O plano gratuito do Supabase pausa o projeto após ~7 dias sem atividade.
+# Uma consulta periódica à API conta como atividade e evita a pausa.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '0 12 */3 * *' # a cada 3 dias, com folga em relação aos 7 dias
+  workflow_dispatch: # permite rodar manualmente pela aba Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      # --fail faz o job falhar (e o GitHub avisar por e-mail) se a API não responder,
+      # o que também denuncia um projeto que já esteja pausado.
+      - name: Consultar a API do Supabase
+        run: |
+          curl --fail --silent --show-error --output /dev/null \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/categorias?select=id&limit=1" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}"
