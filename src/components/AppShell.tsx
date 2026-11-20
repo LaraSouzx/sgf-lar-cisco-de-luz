@@ -125,13 +125,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nome = nomeExibicao(session?.user.email, session?.user.user_metadata?.nome_completo)
   const inicial = nome.charAt(0).toUpperCase()
   const [menuAberto, setMenuAberto] = useState(true)
+  // Em telas pequenas o menu vira uma gaveta sobre o conteúdo, aberta por este botão
+  const [menuMobileAberto, setMenuMobileAberto] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-[#f4f7f1]">
       <div className="flex w-full flex-col md:flex-row">
+        {menuMobileAberto && (
+          <div
+            aria-hidden="true"
+            onClick={() => setMenuMobileAberto(false)}
+            className="fixed inset-0 z-10 bg-black/40 md:hidden"
+          />
+        )}
+        {/* O clique no menu fecha a gaveta (ao navegar ou ao tocar nos botões); no desktop não tem efeito */}
         <nav
           aria-label="Menu principal"
-          className={`hidden shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] py-4.5 transition-[width] duration-200 md:flex ${
+          onClick={() => setMenuMobileAberto(false)}
+          className={`${
+            menuMobileAberto ? 'fixed inset-y-0 left-0 z-20 flex' : 'hidden'
+          } shrink-0 flex-col gap-2 border-r border-[#e3e9df] bg-[#f4f7f1] py-4.5 transition-[width] duration-200 md:static md:z-auto md:flex ${
             menuAberto ? 'w-65 px-4.5' : 'w-19 items-center px-2'
           }`}
         >
@@ -194,6 +207,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-22 shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
             <div className="flex items-center gap-3.5">
+              <button
+                type="button"
+                onClick={() => setMenuMobileAberto(true)}
+                aria-label="Abrir menu"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#dfe6db] bg-white text-[#141a14] md:hidden"
+              >
+                {iconMenu}
+              </button>
               <div
                 aria-hidden="true"
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-[#141a14] text-[17px] font-bold text-[#9fe39a]"
