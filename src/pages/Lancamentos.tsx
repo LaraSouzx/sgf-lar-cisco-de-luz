@@ -10,6 +10,7 @@ import { formatarData, formatarValorEmReais } from '../hooks/formatacao'
 import { useFiltrosDaUrl } from '../hooks/useFiltrosDaUrl'
 import { useLancamentos, type FiltroLancamentos } from '../hooks/useLancamentos'
 import type { FormularioLancamento } from '../hooks/validarLancamento'
+import { ROTULO_FORMA_RECEBIMENTO } from '../lib/formasDeRecebimento'
 import type { Lancamento, TipoLancamento } from '../types/lancamento'
 
 const QUANTIDADE_INICIAL = 10
@@ -46,6 +47,8 @@ function LinhaLancamento({
   const entrada = lancamento.tipo === 'entrada'
   const corValor = entrada ? 'text-[#2f7d34]' : 'text-[#b3261e]'
   const caminhoDoComprovante = lancamento.comprovanteUrl
+  const rotuloDaForma = lancamento.formaRecebimento && ROTULO_FORMA_RECEBIMENTO[lancamento.formaRecebimento]
+  const emDinheiro = lancamento.formaRecebimento === 'dinheiro'
 
   return (
     <li className="flex min-h-14 flex-wrap items-center gap-3 border-b border-[#e8ede5] py-2 last:border-0">
@@ -55,7 +58,7 @@ function LinhaLancamento({
           {lancamento.descricao}
         </span>
         <span className="text-xs text-[#4f5c4c]">
-          {[lancamento.categoriaNome, lancamento.doadorNome].filter(Boolean).join(' · ')}
+          {[lancamento.categoriaNome, lancamento.doadorNome, rotuloDaForma].filter(Boolean).join(' · ')}
         </span>
       </div>
       <span className={`text-sm font-bold ${lancamento.cancelado ? 'text-[#8b968a] line-through' : corValor}`}>
@@ -78,6 +81,11 @@ function LinhaLancamento({
             >
               Ver comprovante
             </button>
+          ) : emDinheiro ? (
+            // Dinheiro não tem comprovante de propósito: a etiqueta explica a ausência em vez de alertar.
+            <span className="rounded-md bg-[#e8ede5] px-2 py-0.5 text-xs font-semibold text-[#3c463a]">
+              Dinheiro
+            </span>
           ) : (
             <span className="rounded-md bg-[#fdf1d8] px-2 py-0.5 text-xs font-semibold text-[#8a5a00]">
               Sem comprovante

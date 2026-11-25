@@ -13,6 +13,7 @@ function lancamento(overrides: Partial<Lancamento>): Lancamento {
     usuarioId: 'user',
     doadorId: null,
     doadorNome: null,
+    formaRecebimento: null,
     descricao: 'Descrição',
     comprovanteUrl: 'http://exemplo.com/comprovante.pdf',
     cancelado: false,
@@ -136,6 +137,8 @@ describe('calcularResumoDashboard', () => {
       lancamento({ comprovanteUrl: null, cancelado: false }),
       lancamento({ comprovanteUrl: null, cancelado: true }),
       lancamento({ comprovanteUrl: 'http://exemplo.com/x.pdf', cancelado: false }),
+      // Dinheiro não tem comprovante de propósito: não é pendência.
+      lancamento({ comprovanteUrl: null, formaRecebimento: 'dinheiro', cancelado: false }),
     ]
 
     const resumo = calcularResumoDashboard(lancamentos, hoje)

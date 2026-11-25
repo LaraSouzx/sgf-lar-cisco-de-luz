@@ -66,7 +66,7 @@ export function calcularResumoDashboard(
   )
   const ultimosLancamentos = ordenarPorDataDesc(ativos).slice(0, LIMITE_LISTAS_RECENTES)
 
-  const pendenciasComprovante = ativos.filter((l) => !l.comprovanteUrl).length
+  const pendenciasComprovante = ativos.filter((l) => !l.comprovanteUrl && l.formaRecebimento !== 'dinheiro').length
 
   return {
     saldo,
