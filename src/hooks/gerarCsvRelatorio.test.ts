@@ -17,6 +17,7 @@ function lancamento(overrides: Partial<Lancamento>): Lancamento {
     usuarioId: 'user',
     doadorId: 'd1',
     doadorNome: 'Maria',
+    formaRecebimento: 'dinheiro',
     descricao: 'Doação mensal',
     comprovanteUrl: null,
     cancelado: false,
@@ -67,8 +68,8 @@ describe('gerarCsvRelatorio', () => {
       'Aluguel;400,00;100%',
       '',
       'Lançamentos',
-      'Data;Tipo;Categoria;Doador;Descrição;Valor',
-      '05/09/2026;Entrada;Doação;Maria;Doação mensal;500,00',
+      'Data;Tipo;Categoria;Doador;Forma de recebimento;Descrição;Valor',
+      '05/09/2026;Entrada;Doação;Maria;Dinheiro;Doação mensal;500,00',
     ])
   })
 
@@ -77,7 +78,14 @@ describe('gerarCsvRelatorio', () => {
       relatorio({
         saldoFinal: -100,
         lancamentos: [
-          lancamento({ tipo: 'saida', valor: 100, doadorId: null, doadorNome: null, categoriaNome: 'Luz' }),
+          lancamento({
+            tipo: 'saida',
+            valor: 100,
+            doadorId: null,
+            doadorNome: null,
+            formaRecebimento: null,
+            categoriaNome: 'Luz',
+          }),
         ],
       }),
       '2026',
@@ -85,7 +93,7 @@ describe('gerarCsvRelatorio', () => {
     )
 
     expect(linhas(csv)).toContain('Saldo final;-100,00')
-    expect(linhas(csv)).toContain('05/09/2026;Saída;Luz;;Doação mensal;100,00')
+    expect(linhas(csv)).toContain('05/09/2026;Saída;Luz;;;Doação mensal;100,00')
     expect(linhas(csv)).toContain('Período;2026')
   })
 
@@ -96,14 +104,14 @@ describe('gerarCsvRelatorio', () => {
       contexto,
     )
 
-    expect(linhas(csv)).toContain('05/09/2026;Entrada;Doação;Maria;"Compra; ""arroz""";500,00')
+    expect(linhas(csv)).toContain('05/09/2026;Entrada;Doação;Maria;Dinheiro;"Compra; ""arroz""";500,00')
   })
 
   // Uma descrição como "=SOMA(A1)" viraria fórmula ao abrir no Excel.
   it.each(['=SOMA(A1)', '+1', '-1', '@usuario'])('neutraliza texto que o Excel leria como fórmula ("%s")', (descricao) => {
     const csv = gerarCsvRelatorio(relatorio({ lancamentos: [lancamento({ descricao })] }), '2026-09', contexto)
 
-    expect(linhas(csv)).toContain(`05/09/2026;Entrada;Doação;Maria;'${descricao};500,00`)
+    expect(linhas(csv)).toContain(`05/09/2026;Entrada;Doação;Maria;Dinheiro;'${descricao};500,00`)
   })
 })
 

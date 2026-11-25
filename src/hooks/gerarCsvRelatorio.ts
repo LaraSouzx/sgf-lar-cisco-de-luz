@@ -1,3 +1,4 @@
+import { ROTULO_FORMA_RECEBIMENTO } from '../lib/formasDeRecebimento'
 import type { ContextoExportacao } from '../types/exportacao'
 import type { Lancamento } from '../types/lancamento'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
@@ -55,13 +56,14 @@ export function gerarCsvRelatorio(relatorio: Relatorio, periodo: string, context
     ...secaoCategorias('Saídas por categoria', relatorio.saidasPorCategoria),
     '',
     'Lançamentos',
-    linha('Data', 'Tipo', 'Categoria', 'Doador', 'Descrição', 'Valor'),
+    linha('Data', 'Tipo', 'Categoria', 'Doador', 'Forma de recebimento', 'Descrição', 'Valor'),
     ...relatorio.lancamentos.map((item) =>
       linha(
         formatarData(item.data),
         ROTULO_TIPO[item.tipo],
         celula(item.categoriaNome),
         celula(item.doadorNome ?? ''),
+        item.formaRecebimento ? ROTULO_FORMA_RECEBIMENTO[item.formaRecebimento] : '',
         celula(item.descricao),
         formatarValorParaPlanilha(item.valor),
       ),

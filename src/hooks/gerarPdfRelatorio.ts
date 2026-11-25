@@ -1,4 +1,5 @@
 import type { jsPDF } from 'jspdf'
+import { ROTULO_FORMA_RECEBIMENTO } from '../lib/formasDeRecebimento'
 import type { ContextoExportacao } from '../types/exportacao'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
 import type { ValorPorCategoria } from './calculosFinanceiros'
@@ -92,18 +93,19 @@ export async function gerarPdfRelatorio(relatorio: Relatorio, periodo: string, c
   )
   documento.tabela(
     'Lançamentos do período',
-    ['Data', 'Tipo', 'Categoria', 'Doador', 'Descrição', 'Valor'],
+    ['Data', 'Tipo', 'Categoria', 'Doador', 'Forma de recebimento', 'Descrição', 'Valor'],
     relatorio.lancamentos.length === 0
-      ? [[SEM_LANCAMENTOS, '', '', '', '', '']]
+      ? [[SEM_LANCAMENTOS, '', '', '', '', '', '']]
       : relatorio.lancamentos.map((item) => [
           formatarData(item.data),
           item.tipo === 'entrada' ? 'Entrada' : 'Saída',
           item.categoriaNome,
           item.doadorNome ?? '',
+          item.formaRecebimento ? ROTULO_FORMA_RECEBIMENTO[item.formaRecebimento] : '',
           item.descricao,
           reais(item.valor),
         ]),
-    [5],
+    [6],
   )
 
   return documento.arquivo()

@@ -16,6 +16,7 @@ function lancamento(overrides: Partial<Lancamento>): Lancamento {
     usuarioId: 'user',
     doadorId: 'd1',
     doadorNome: 'Maria',
+    formaRecebimento: null,
     descricao: 'Mensalidade',
     comprovanteUrl: null,
     cancelado: false,
