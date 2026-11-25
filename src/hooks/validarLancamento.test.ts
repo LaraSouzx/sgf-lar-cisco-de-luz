@@ -19,6 +19,7 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     valor: '150,50',
     tipo: 'saida',
     categoriaId: 'c1',
+    formaRecebimento: null,
     descricao: '  Conta de luz  ',
     doadorId: null,
     // O valor padrão (150,50) exige comprovante; o formulário-base já vem com um anexado.
@@ -44,6 +45,7 @@ describe('validarLancamento', () => {
         categoriaId: 'c1',
         descricao: 'Conta de luz',
         doadorId: null,
+        formaRecebimento: null,
         comprovanteUrl: 'existente.pdf',
       },
       arquivo: null,
@@ -52,7 +54,7 @@ describe('validarLancamento', () => {
 
   it('aceita doador em uma entrada', () => {
     const resultado = validarLancamento(
-      formulario({ tipo: 'entrada', categoriaId: 'c2', doadorId: 'd1' }),
+      formulario({ tipo: 'entrada', categoriaId: 'c2', doadorId: 'd1', formaRecebimento: 'pix' }),
       categorias,
       HOJE,
     )
@@ -145,7 +147,7 @@ describe('validarLancamento: comprovante', () => {
 
   it('exige comprovante também em entradas', () => {
     const resultado = validarLancamento(
-      formulario({ ...semComprovante, tipo: 'entrada', categoriaId: 'c2', valor: '100' }),
+      formulario({ ...semComprovante, tipo: 'entrada', categoriaId: 'c2', valor: '100', formaRecebimento: 'pix' }),
       categorias,
       HOJE,
     )
@@ -200,6 +202,70 @@ describe('validarLancamento: comprovante', () => {
     )
 
     expect(resultado).toEqual({ erro: 'O comprovante deve ser uma foto (JPG, PNG ou WebP) ou um PDF' })
+  })
+})
+
+describe('validarLancamento: forma de recebimento e doação em dinheiro', () => {
+  const entrada = { tipo: 'entrada' as const, categoriaId: 'c2', comprovanteAtual: null, arquivo: null }
+
+  it('exige a forma de recebimento em entradas', () => {
+    expect(validarLancamento(formulario({ ...entrada, formaRecebimento: null }), categorias, HOJE)).toEqual({
+      erro: 'Escolha a forma de recebimento',
+    })
+  })
+
+  it('recusa forma de recebimento em saídas', () => {
+    expect(validarLancamento(formulario({ formaRecebimento: 'pix' }), categorias, HOJE)).toEqual({
+      erro: 'Só entradas têm forma de recebimento',
+    })
+  })
+
+  it('dispensa o comprovante em doação em dinheiro, mesmo acima do valor mínimo', () => {
+    const resultado = validarLancamento(
+      formulario({ ...entrada, valor: '1.200,00', formaRecebimento: 'dinheiro', doadorId: 'd1' }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toMatchObject({ lancamento: { formaRecebimento: 'dinheiro', comprovanteUrl: null } })
+  })
+
+  it('exige doador em doação em dinheiro', () => {
+    const resultado = validarLancamento(
+      formulario({ ...entrada, formaRecebimento: 'dinheiro', doadorId: null }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toEqual({ erro: expect.stringMatching(/^Informe o doador/) })
+  })
+
+  it('aceita anexar comprovante numa doação em dinheiro', () => {
+    const anexo = arquivo('application/pdf')
+
+    const resultado = validarLancamento(
+      formulario({ ...entrada, formaRecebimento: 'dinheiro', doadorId: 'd1', arquivo: anexo }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toMatchObject({ arquivo: anexo })
+  })
+
+  it.each(['pix', 'transferencia', 'outro'] as const)('continua exigindo comprovante em %s', (forma) => {
+    const resultado = validarLancamento(formulario({ ...entrada, valor: '100', formaRecebimento: forma }), categorias, HOJE)
+
+    expect(resultado).toEqual({ erro: expect.stringMatching(/^Anexe o comprovante/) })
+  })
+
+  it('não exige doador nas outras formas', () => {
+    const resultado = validarLancamento(
+      formulario({ ...entrada, valor: '10', formaRecebimento: 'pix', doadorId: null }),
+      categorias,
+      HOJE,
+    )
+
+    expect(resultado).toHaveProperty('lancamento')
   })
 })
 

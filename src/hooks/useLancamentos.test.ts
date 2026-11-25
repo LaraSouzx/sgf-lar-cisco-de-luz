@@ -26,6 +26,7 @@ function lancamento(overrides: Partial<Lancamento> = {}): Lancamento {
     usuarioId: 'u1',
     doadorId: null,
     doadorNome: null,
+    formaRecebimento: null,
     descricao: 'Conta de luz',
     comprovanteUrl: null,
     cancelado: false,
@@ -39,6 +40,7 @@ function formulario(overrides: Partial<FormularioLancamento> = {}): FormularioLa
     valor: '150,50',
     tipo: 'saida',
     categoriaId: 'c1',
+    formaRecebimento: null,
     descricao: 'Conta de luz',
     doadorId: null,
     // O valor padrão (150,50) exige comprovante; o formulário-base já vem com um anexado.
@@ -138,6 +140,7 @@ describe('useLancamentos', () => {
         categoriaId: 'c1',
         descricao: 'Conta de luz',
         doadorId: null,
+        formaRecebimento: null,
         comprovanteUrl: 'existente.pdf',
       })
       expect(result.current.lancamentos).toHaveLength(1)
@@ -189,6 +192,7 @@ describe('useLancamentos', () => {
         categoriaId: 'c1',
         descricao: 'Luz de setembro',
         doadorId: null,
+        formaRecebimento: null,
         comprovanteUrl: 'existente.pdf',
       })
       expect(lancamentosService.listLancamentos).toHaveBeenCalledTimes(2)

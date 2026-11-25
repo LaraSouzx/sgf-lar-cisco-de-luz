@@ -4,7 +4,7 @@ import {
   VALOR_MINIMO_COMPROVANTE,
 } from '../lib/regrasDeComprovante'
 import type { Categoria } from '../types/categoria'
-import type { NovoLancamento, TipoLancamento } from '../types/lancamento'
+import type { FormaRecebimento, NovoLancamento, TipoLancamento } from '../types/lancamento'
 import { formatarValorEmReais } from './formatacao'
 
 // Campos como chegam do formulário: o valor ainda é o texto digitado, `arquivo` é o comprovante
@@ -51,14 +51,24 @@ export function categoriasDisponiveis(
   )
 }
 
-function validarComprovante(valor: number, arquivo: File | null, comprovanteAtual: string | null) {
+// Dinheiro vivo não gera documento, então só nele o comprovante é dispensado (anexar continua permitido).
+function comprovanteObrigatorio(valor: number, forma: FormaRecebimento | null) {
+  return forma !== 'dinheiro' && valor >= VALOR_MINIMO_COMPROVANTE
+}
+
+function validarComprovante(
+  valor: number,
+  forma: FormaRecebimento | null,
+  arquivo: File | null,
+  comprovanteAtual: string | null,
+) {
   if (arquivo) {
     if (!TIPOS_ACEITOS.includes(arquivo.type)) return 'O comprovante deve ser uma foto (JPG, PNG ou WebP) ou um PDF'
     if (arquivo.size > TAMANHO_MAXIMO_BYTES) return 'O comprovante pode ter no máximo 5 MB'
     return null
   }
 
-  if (valor >= VALOR_MINIMO_COMPROVANTE && !comprovanteAtual) {
+  if (comprovanteObrigatorio(valor, forma) && !comprovanteAtual) {
     const minimo = formatarValorEmReais(VALOR_MINIMO_COMPROVANTE)
     return `Anexe o comprovante: lançamentos a partir de ${minimo} exigem comprovante`
   }
@@ -89,8 +99,16 @@ export function validarLancamento(
 
   if (formulario.tipo === 'saida' && formulario.doadorId) return { erro: 'Só entradas podem ter doador' }
 
+  const { formaRecebimento } = formulario
+  if (formulario.tipo === 'saida' && formaRecebimento) return { erro: 'Só entradas têm forma de recebimento' }
+  if (formulario.tipo === 'entrada' && !formaRecebimento) return { erro: 'Escolha a forma de recebimento' }
+  // Sem comprovante, o doador é a única rastreabilidade de uma doação em dinheiro.
+  if (formaRecebimento === 'dinheiro' && !formulario.doadorId) {
+    return { erro: 'Informe o doador: doações em dinheiro exigem doador' }
+  }
+
   const { arquivo, comprovanteAtual, ...campos } = formulario
-  const erroComprovante = validarComprovante(valor, arquivo, comprovanteAtual)
+  const erroComprovante = validarComprovante(valor, formaRecebimento, arquivo, comprovanteAtual)
   if (erroComprovante) return { erro: erroComprovante }
 
   return { lancamento: { ...campos, valor, descricao, comprovanteUrl: comprovanteAtual }, arquivo }
