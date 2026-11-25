@@ -7,7 +7,7 @@ import {
   listLancamentos,
 } from './lancamentosService'
 
-const { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from } =
+const { order, lte, gte, eq, is, or, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from } =
   vi.hoisted(() => {
   const order = vi.fn()
   // Os filtros da listagem são opcionais e encadeáveis em qualquer combinação.
@@ -16,7 +16,8 @@ const { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect
   const lte = vi.fn(() => consulta)
   const eq = vi.fn(() => consulta)
   const is = vi.fn(() => consulta)
-  Object.assign(consulta, { gte, lte, eq, is })
+  const or = vi.fn(() => consulta)
+  Object.assign(consulta, { gte, lte, eq, is, or })
 
   const select = vi.fn(() => consulta)
   const insert = vi.fn()
@@ -26,7 +27,7 @@ const { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect
   const excluirMatch = vi.fn(() => ({ select: excluirSelect }))
   const excluir = vi.fn(() => ({ match: excluirMatch }))
   const from = vi.fn((_table: string) => ({ select, insert, update, delete: excluir }))
-  return { order, lte, gte, eq, is, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from }
+  return { order, lte, gte, eq, is, or, select, insert, update, updateEq, excluirSelect, excluirMatch, excluir, from }
   })
 
 vi.mock('../lib/supabaseClient', () => ({
@@ -78,6 +79,8 @@ describe('lancamentosService', () => {
       // Mesma regra do card "Prestação de contas": cancelado não conta como pendência.
       expect(eq).toHaveBeenCalledWith('cancelado', false)
       expect(is).toHaveBeenCalledWith('comprovante_url', null)
+      // Dinheiro não tem comprovante: fica fora das pendências, mas as entradas sem forma (antigas) continuam nelas.
+      expect(or).toHaveBeenCalledWith('forma_recebimento.is.null,forma_recebimento.neq.dinheiro')
     })
 
     it('não filtra por comprovante quando semComprovante não é pedido', async () => {
@@ -109,6 +112,7 @@ describe('lancamentosService', () => {
             usuario_id: 'u1',
             doador_id: 'd1',
             doadores: { nome: 'Maria' },
+            forma_recebimento: 'dinheiro',
             descricao: 'Doação mensal',
             comprovante_url: null,
             cancelado: false,
@@ -130,6 +134,7 @@ describe('lancamentosService', () => {
           usuarioId: 'u1',
           doadorId: 'd1',
           doadorNome: 'Maria',
+          formaRecebimento: 'dinheiro',
           descricao: 'Doação mensal',
           comprovanteUrl: null,
           cancelado: false,
@@ -152,6 +157,7 @@ describe('lancamentosService', () => {
       categoriaId: 'c1',
       descricao: 'Conta de luz',
       doadorId: null,
+      formaRecebimento: null,
       comprovanteUrl: null,
     }
 
@@ -168,6 +174,7 @@ describe('lancamentosService', () => {
         categoria_id: 'c1',
         descricao: 'Conta de luz',
         doador_id: null,
+        forma_recebimento: null,
         comprovante_url: null,
       })
     })
@@ -188,6 +195,14 @@ describe('lancamentosService', () => {
       expect(insert).toHaveBeenCalledWith(expect.objectContaining({ doador_id: 'd1' }))
     })
 
+    it('envia a forma de recebimento da entrada', async () => {
+      insert.mockResolvedValue({ error: null })
+
+      await criarLancamento({ ...novo, tipo: 'entrada', doadorId: 'd1', formaRecebimento: 'dinheiro' })
+
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ forma_recebimento: 'dinheiro' }))
+    })
+
     it('lança mensagem genérica quando o Supabase retorna erro', async () => {
       insert.mockResolvedValue({ error: { code: '42501', message: 'rls violation' } })
 
@@ -205,6 +220,7 @@ describe('lancamentosService', () => {
         categoriaId: 'c2',
         descricao: 'Corrigido',
         doadorId: 'd1',
+        formaRecebimento: 'pix',
         comprovanteUrl: 'novo.pdf',
       })
 
@@ -214,6 +230,7 @@ describe('lancamentosService', () => {
         categoria_id: 'c2',
         descricao: 'Corrigido',
         doador_id: 'd1',
+        forma_recebimento: 'pix',
         comprovante_url: 'novo.pdf',
       })
       expect(updateEq).toHaveBeenCalledWith('id', 'l1')
@@ -229,6 +246,7 @@ describe('lancamentosService', () => {
           categoriaId: 'c2',
           descricao: 'x',
           doadorId: null,
+          formaRecebimento: null,
           comprovanteUrl: null,
         }),
       ).rejects.toThrow('Não foi possível salvar o lançamento')

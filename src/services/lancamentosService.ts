@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import type {
   EdicaoLancamento,
+  FormaRecebimento,
   Lancamento,
   NovoLancamento,
   TipoLancamento,
@@ -16,6 +17,7 @@ type LancamentoRow = {
   usuario_id: string
   doador_id: string | null
   doadores: { nome: string } | null
+  forma_recebimento: FormaRecebimento | null
   descricao: string
   comprovante_url: string | null
   cancelado: boolean
@@ -32,6 +34,7 @@ function mapLancamento(row: LancamentoRow): Lancamento {
     usuarioId: row.usuario_id,
     doadorId: row.doador_id,
     doadorNome: row.doadores?.nome ?? null,
+    formaRecebimento: row.forma_recebimento,
     descricao: row.descricao,
     comprovanteUrl: row.comprovante_url,
     cancelado: row.cancelado,
@@ -43,13 +46,13 @@ export async function listLancamentos(filtro: {
   dataFim?: string
   tipo?: TipoLancamento
   doadorId?: string
-  // Pendências de prestação de contas: não cancelados e sem comprovante.
+  // Pendências de prestação de contas: não cancelados e sem comprovante (dinheiro não conta: não tem comprovante).
   semComprovante?: boolean
 }) {
   let query = supabase
     .from('lancamentos')
     .select(
-      'id, data, valor, tipo, categoria_id, categorias(nome), usuario_id, doador_id, doadores(nome), descricao, comprovante_url, cancelado',
+      'id, data, valor, tipo, categoria_id, categorias(nome), usuario_id, doador_id, doadores(nome), forma_recebimento, descricao, comprovante_url, cancelado',
     )
 
   if (filtro.tipo) {
@@ -59,7 +62,11 @@ export async function listLancamentos(filtro: {
     query = query.eq('doador_id', filtro.doadorId)
   }
   if (filtro.semComprovante) {
-    query = query.eq('cancelado', false).is('comprovante_url', null)
+    // `.neq` sozinho descartaria as linhas sem forma (null), por isso o `or`.
+    query = query
+      .eq('cancelado', false)
+      .is('comprovante_url', null)
+      .or('forma_recebimento.is.null,forma_recebimento.neq.dinheiro')
   }
   if (filtro.dataInicio) {
     query = query.gte('data', filtro.dataInicio)
@@ -81,10 +88,17 @@ export async function listLancamentos(filtro: {
 function paraColunas<Campos extends EdicaoLancamento>({
   categoriaId,
   doadorId,
+  formaRecebimento,
   comprovanteUrl,
   ...demaisCampos
 }: Campos) {
-  return { ...demaisCampos, categoria_id: categoriaId, doador_id: doadorId, comprovante_url: comprovanteUrl }
+  return {
+    ...demaisCampos,
+    categoria_id: categoriaId,
+    doador_id: doadorId,
+    forma_recebimento: formaRecebimento,
+    comprovante_url: comprovanteUrl,
+  }
 }
 
 // usuario_id não é enviado: o banco preenche com auth.uid(), então ninguém lança em nome de outra pessoa.
