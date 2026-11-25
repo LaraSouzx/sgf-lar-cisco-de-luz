@@ -1,11 +1,13 @@
 import { AppShell } from '../components/AppShell'
+import { ComparativoMensal } from '../components/ComparativoMensal'
 import { classeBotao, classeCampo } from '../components/estilos'
 import { useAuthContext } from '../context/AuthContext'
+import { calcularComparativoMensal } from '../hooks/calcularComparativo'
 import type { Relatorio, RelatorioDoador } from '../hooks/calcularRelatorio'
 import type { ValorPorCategoria } from '../hooks/calculosFinanceiros'
 import { formatarData, formatarValorEmReais } from '../hooks/formatacao'
-import { gerarCsvDoacoes, gerarCsvRelatorio } from '../hooks/gerarCsvRelatorio'
-import { gerarPdfDoacoes, gerarPdfRelatorio } from '../hooks/gerarPdfRelatorio'
+import { gerarCsvComparativo, gerarCsvDoacoes, gerarCsvRelatorio } from '../hooks/gerarCsvRelatorio'
+import { gerarPdfComparativo, gerarPdfDoacoes, gerarPdfRelatorio } from '../hooks/gerarPdfRelatorio'
 import { periodoDoMesAtual, periodoValido, rotuloDoPeriodo } from '../hooks/periodo'
 import { useDoadores } from '../hooks/useDoadores'
 import { useFiltrosDaUrl } from '../hooks/useFiltrosDaUrl'
@@ -139,21 +141,29 @@ function RelatorioDoadorView({ relatorio }: { relatorio: RelatorioDoador }) {
 }
 
 export function Relatorios() {
-  const { parametros, atualizarFiltro } = useFiltrosDaUrl()
+  const { parametros, atualizarFiltro, atualizarFiltros } = useFiltrosDaUrl()
   const { session } = useAuthContext()
   const { doadores } = useDoadores()
 
   const periodoDaUrl = parametros.get('periodo') ?? ''
-  const periodo = periodoValido(periodoDaUrl) ? periodoDaUrl : periodoDoMesAtual()
-  const doadorId = parametros.get('doador') || undefined
+  const periodoLido = periodoValido(periodoDaUrl) ? periodoDaUrl : periodoDoMesAtual()
+  const comparando = parametros.get('modo') === 'comparar'
+  // Comparar meses trabalha sempre com um ano inteiro e não combina com filtro de doador.
+  const periodo = comparando ? periodoLido.slice(0, 4) : periodoLido
+  const doadorId = comparando ? undefined : parametros.get('doador') || undefined
   const anoInteiro = periodo.length === 4
+  const modo = comparando ? 'comparar' : anoInteiro ? 'ano' : 'mes'
   const nomeDoador = doadores.find((doador) => doador.id === doadorId)?.nome
 
   const { relatorio, relatorioDoador, isLoading, error } = useRelatorio(periodo, doadorId)
 
-  function trocarModoDoPeriodo(modo: string) {
+  function trocarModoDoPeriodo(novoModo: string) {
     const ano = periodo.slice(0, 4)
-    atualizarFiltro('periodo', modo === 'ano' ? ano : `${ano}-01`)
+    atualizarFiltros({
+      periodo: novoModo === 'mes' ? `${ano}-01` : ano,
+      modo: novoModo === 'comparar' ? 'comparar' : '',
+      ...(novoModo === 'comparar' && { doador: '' }),
+    })
   }
 
   function trocarPeriodo(novoPeriodo: string) {
@@ -162,9 +172,12 @@ export function Relatorios() {
   }
 
   const contexto = { geradoEm: dataDeHoje(), usuario: session?.user.email ?? '' }
+  const comparativo = comparando && relatorio ? calcularComparativoMensal(relatorio, periodo) : null
 
   function exportarCsv() {
-    if (relatorioDoador) {
+    if (comparativo) {
+      baixarArquivo(`comparativo-${periodo}.csv`, gerarCsvComparativo(comparativo, contexto), 'text/csv;charset=utf-8')
+    } else if (relatorioDoador) {
       const csv = gerarCsvDoacoes(relatorioDoador, periodo, nomeDoador ?? '', contexto)
       baixarArquivo(`doacoes-${periodo}.csv`, csv, 'text/csv;charset=utf-8')
     } else if (relatorio) {
@@ -173,7 +186,9 @@ export function Relatorios() {
   }
 
   async function exportarPdf() {
-    if (relatorioDoador) {
+    if (comparativo) {
+      baixarArquivo(`comparativo-${periodo}.pdf`, await gerarPdfComparativo(comparativo, contexto), 'application/pdf')
+    } else if (relatorioDoador) {
       const pdf = await gerarPdfDoacoes(relatorioDoador, periodo, nomeDoador ?? '', contexto)
       baixarArquivo(`doacoes-${periodo}.pdf`, pdf, 'application/pdf')
     } else if (relatorio) {
@@ -188,12 +203,13 @@ export function Relatorios() {
           <div className="flex flex-wrap items-center gap-2.5">
             <select
               aria-label="Tipo de período"
-              value={anoInteiro ? 'ano' : 'mes'}
+              value={modo}
               onChange={(event) => trocarModoDoPeriodo(event.target.value)}
               className={classeCampo}
             >
               <option value="mes">Mês</option>
               <option value="ano">Ano inteiro</option>
+              <option value="comparar">Comparar meses</option>
             </select>
             {anoInteiro ? (
               <select
@@ -217,19 +233,21 @@ export function Relatorios() {
                 className={classeCampo}
               />
             )}
-            <select
-              aria-label="Filtrar por doador"
-              value={doadorId ?? ''}
-              onChange={(event) => atualizarFiltro('doador', event.target.value)}
-              className={classeCampo}
-            >
-              <option value="">Todos os lançamentos</option>
-              {doadores.map((doador) => (
-                <option key={doador.id} value={doador.id}>
-                  Doações de {doador.nome}
-                </option>
-              ))}
-            </select>
+            {!comparando && (
+              <select
+                aria-label="Filtrar por doador"
+                value={doadorId ?? ''}
+                onChange={(event) => atualizarFiltro('doador', event.target.value)}
+                className={classeCampo}
+              >
+                <option value="">Todos os lançamentos</option>
+                {doadores.map((doador) => (
+                  <option key={doador.id} value={doador.id}>
+                    Doações de {doador.nome}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="ml-auto flex gap-2.5">
               <button
                 type="button"
@@ -252,7 +270,8 @@ export function Relatorios() {
         </section>
 
         <h2 className="m-0 text-xl font-semibold">
-          {doadorId ? `Doações de ${nomeDoador ?? 'doador'}` : 'Relatório financeiro'} · {rotuloDoPeriodo(periodo)}
+          {comparando ? 'Comparativo mensal' : doadorId ? `Doações de ${nomeDoador ?? 'doador'}` : 'Relatório financeiro'} ·{' '}
+          {rotuloDoPeriodo(periodo)}
         </h2>
 
         {isLoading && <p className="text-sm text-[#4f5c4c]">Carregando relatório...</p>}
@@ -261,7 +280,8 @@ export function Relatorios() {
             {error}
           </p>
         )}
-        {relatorio && <RelatorioGeral relatorio={relatorio} />}
+        {comparativo && <ComparativoMensal comparativo={comparativo} />}
+        {relatorio && !comparando && <RelatorioGeral relatorio={relatorio} />}
         {relatorioDoador && <RelatorioDoadorView relatorio={relatorioDoador} />}
       </div>
     </AppShell>
