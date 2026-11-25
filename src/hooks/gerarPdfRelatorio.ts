@@ -3,8 +3,9 @@ import { ROTULO_FORMA_RECEBIMENTO } from '../lib/formasDeRecebimento'
 import type { ContextoExportacao } from '../types/exportacao'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
 import type { ValorPorCategoria } from './calculosFinanceiros'
-import { formatarData, formatarValorEmReais } from './formatacao'
-import { rotuloDoPeriodo } from './periodo'
+import type { CategoriaComparativo, Comparativo } from './calcularComparativo'
+import { formatarData, formatarValorEmReais, formatarVariacao } from './formatacao'
+import { abreviacaoDoMes, NOMES_DOS_MESES, rotuloDoPeriodo } from './periodo'
 
 const MARGEM = 14
 const ESPACO_ENTRE_SECOES = 10
@@ -23,8 +24,13 @@ type Biblioteca = Awaited<ReturnType<typeof carregarBiblioteca>>
 const reais = (valor: number) => formatarValorEmReais(valor).replace(/\s/g, ' ')
 
 // Monta o PDF de cima para baixo: título e cabeçalho, depois uma tabela por seção.
-function criarDocumento({ jsPDF, autoTable }: Biblioteca, titulo: string, linhasDoCabecalho: string[]) {
-  const doc = new jsPDF()
+function criarDocumento(
+  { jsPDF, autoTable }: Biblioteca,
+  titulo: string,
+  linhasDoCabecalho: string[],
+  orientacao: 'portrait' | 'landscape' = 'portrait',
+) {
+  const doc = new jsPDF({ orientation: orientacao })
   let y = 20
 
   doc.setFontSize(16)
@@ -37,7 +43,13 @@ function criarDocumento({ jsPDF, autoTable }: Biblioteca, titulo: string, linhas
   y += ESPACO_ENTRE_SECOES
 
   return {
-    tabela(tituloDaSecao: string, cabecalho: string[], linhas: string[][], colunasAlinhadasADireita: number[] = []) {
+    tabela(
+      tituloDaSecao: string,
+      cabecalho: string[],
+      linhas: string[][],
+      colunasAlinhadasADireita: number[] = [],
+      tamanhoDaFonte = 9,
+    ) {
       doc.setFontSize(12)
       doc.text(tituloDaSecao, MARGEM, y)
       autoTable(doc, {
@@ -45,7 +57,7 @@ function criarDocumento({ jsPDF, autoTable }: Biblioteca, titulo: string, linhas
         head: [cabecalho],
         body: linhas,
         margin: { left: MARGEM, right: MARGEM },
-        styles: { fontSize: 9 },
+        styles: { fontSize: tamanhoDaFonte },
         headStyles: { fillColor: COR_CABECALHO_TABELA },
         columnStyles: Object.fromEntries(colunasAlinhadasADireita.map((coluna) => [coluna, { halign: 'right' }])),
       })
@@ -106,6 +118,68 @@ export async function gerarPdfRelatorio(relatorio: Relatorio, periodo: string, c
           reais(item.valor),
         ]),
     [6],
+  )
+
+  return documento.arquivo()
+}
+
+// Sem o "R$" em cada célula: com 12 meses lado a lado, o prefixo é o que estoura a largura da página.
+const numero = (valor: number) =>
+  valor === 0 ? '' : valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+function linhasDeCategoriasPorMes(categorias: CategoriaComparativo[], quantidadeDeMeses: number) {
+  if (categorias.length === 0) return [[SEM_LANCAMENTOS, ...Array(quantidadeDeMeses + 1).fill('')]]
+  return categorias.map((categoria) => [
+    categoria.categoriaNome,
+    ...categoria.valoresPorMes.map(numero),
+    numero(categoria.total),
+  ])
+}
+
+// Em paisagem: as categorias têm uma coluna por mês e não cabem legíveis em A4 retrato.
+export async function gerarPdfComparativo(
+  { ano, meses, entradasPorCategoria, saidasPorCategoria }: Comparativo,
+  contexto: ContextoExportacao,
+) {
+  const documento = criarDocumento(
+    await carregarBiblioteca(),
+    'Comparativo mensal',
+    [`Ano: ${ano}`, `Gerado em ${formatarData(contexto.geradoEm)} por ${contexto.usuario}`],
+    'landscape',
+  )
+
+  documento.tabela(
+    'Totais mês a mês',
+    ['Mês', 'Entradas', 'Var.', 'Saídas', 'Var.', 'Resultado do mês', 'Saldo final'],
+    meses.length === 0
+      ? [[SEM_LANCAMENTOS, '', '', '', '', '', '']]
+      : meses.map((mes) => [
+          NOMES_DOS_MESES[mes.mes - 1] + (mes.emAndamento ? ' (em andamento)' : ''),
+          reais(mes.entradas),
+          formatarVariacao(mes.variacaoEntradas),
+          reais(mes.saidas),
+          formatarVariacao(mes.variacaoSaidas),
+          reais(mes.resultado),
+          reais(mes.saldoFinal),
+        ]),
+    [1, 2, 3, 4, 5, 6],
+  )
+
+  const cabecalhoCategorias = ['Categoria', ...meses.map(({ mes }) => abreviacaoDoMes(mes)), 'Total']
+  const colunasDeValores = cabecalhoCategorias.map((_, coluna) => coluna).slice(1)
+  documento.tabela(
+    'Entradas por categoria (valores em R$)',
+    cabecalhoCategorias,
+    linhasDeCategoriasPorMes(entradasPorCategoria, meses.length),
+    colunasDeValores,
+    7,
+  )
+  documento.tabela(
+    'Saídas por categoria (valores em R$)',
+    cabecalhoCategorias,
+    linhasDeCategoriasPorMes(saidasPorCategoria, meses.length),
+    colunasDeValores,
+    7,
   )
 
   return documento.arquivo()

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Lancamento } from '../types/lancamento'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
-import { gerarCsvDoacoes, gerarCsvRelatorio } from './gerarCsvRelatorio'
+import type { Comparativo } from './calcularComparativo'
+import { gerarCsvComparativo, gerarCsvDoacoes, gerarCsvRelatorio } from './gerarCsvRelatorio'
 
 const BOM = '﻿'
 const contexto = { geradoEm: '2026-09-23', usuario: 'maria@exemplo.com' }
@@ -138,5 +139,34 @@ describe('gerarCsvDoacoes', () => {
       '25/09/2026;Doação;Doação mensal;50,50',
       '05/09/2026;Doação;Doação mensal;100,00',
     ])
+  })
+})
+
+describe('gerarCsvComparativo', () => {
+  const comparativo: Comparativo = {
+    ano: '2026',
+    meses: [
+      { mes: 1, entradas: 1000, saidas: 400, resultado: 600, saldoFinal: 600, variacaoEntradas: null, variacaoSaidas: null, emAndamento: false },
+      { mes: 2, entradas: 1500, saidas: 200, resultado: 1300, saldoFinal: 1900, variacaoEntradas: 50, variacaoSaidas: -50, emAndamento: true },
+    ],
+    entradasPorCategoria: [{ categoriaId: 'c1', categoriaNome: 'Doação', total: 2500, valoresPorMes: [1000, 1500] }],
+    saidasPorCategoria: [{ categoriaId: 'c2', categoriaNome: 'Luz', total: 600, valoresPorMes: [400, 200] }],
+  }
+
+  it('traz totais mês a mês com variação e marca o mês em andamento', () => {
+    const csv = linhas(gerarCsvComparativo(comparativo, contexto))
+
+    expect(csv).toContain('Mês;Entradas;Variação entradas;Saídas;Variação saídas;Resultado do mês;Saldo final')
+    expect(csv).toContain('Janeiro;1000,00;—;400,00;—;600,00;600,00')
+    expect(csv).toContain('Fevereiro (em andamento);1500,00;+50,0%;200,00;-50,0%;1300,00;1900,00')
+  })
+
+  it('traz as categorias com um valor por mês e o total do ano', () => {
+    const csv = linhas(gerarCsvComparativo(comparativo, contexto))
+
+    expect(csv).toContain('Entradas por categoria')
+    expect(csv).toContain('Categoria;Jan;Fev;Total')
+    expect(csv).toContain('Doação;1000,00;1500,00;2500,00')
+    expect(csv).toContain('Luz;400,00;200,00;600,00')
   })
 })

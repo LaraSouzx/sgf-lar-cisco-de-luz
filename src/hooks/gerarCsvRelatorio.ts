@@ -3,8 +3,9 @@ import type { ContextoExportacao } from '../types/exportacao'
 import type { Lancamento } from '../types/lancamento'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
 import type { ValorPorCategoria } from './calculosFinanceiros'
-import { formatarData, formatarValorParaPlanilha } from './formatacao'
-import { rotuloDoPeriodo } from './periodo'
+import type { CategoriaComparativo, Comparativo, MesComparativo } from './calcularComparativo'
+import { formatarData, formatarValorParaPlanilha, formatarVariacao } from './formatacao'
+import { abreviacaoDoMes, NOMES_DOS_MESES, rotuloDoPeriodo } from './periodo'
 
 // Ponto e vírgula porque o Excel em português usa a vírgula como decimal.
 const SEPARADOR = ';'
@@ -68,6 +69,45 @@ export function gerarCsvRelatorio(relatorio: Relatorio, periodo: string, context
         formatarValorParaPlanilha(item.valor),
       ),
     ),
+  ])
+}
+
+function secaoCategoriasPorMes(titulo: string, categorias: CategoriaComparativo[], meses: MesComparativo[]) {
+  return [
+    titulo,
+    linha('Categoria', ...meses.map(({ mes }) => abreviacaoDoMes(mes)), 'Total'),
+    ...categorias.map((categoria) =>
+      linha(
+        celula(categoria.categoriaNome),
+        ...categoria.valoresPorMes.map(formatarValorParaPlanilha),
+        formatarValorParaPlanilha(categoria.total),
+      ),
+    ),
+  ]
+}
+
+export function gerarCsvComparativo({ ano, meses, entradasPorCategoria, saidasPorCategoria }: Comparativo, contexto: ContextoExportacao) {
+  return montarArquivo([
+    'Comparativo mensal',
+    linha('Ano', ano),
+    ...cabecalhoGeracao(contexto),
+    '',
+    linha('Mês', 'Entradas', 'Variação entradas', 'Saídas', 'Variação saídas', 'Resultado do mês', 'Saldo final'),
+    ...meses.map((mes) =>
+      linha(
+        NOMES_DOS_MESES[mes.mes - 1] + (mes.emAndamento ? ' (em andamento)' : ''),
+        formatarValorParaPlanilha(mes.entradas),
+        formatarVariacao(mes.variacaoEntradas),
+        formatarValorParaPlanilha(mes.saidas),
+        formatarVariacao(mes.variacaoSaidas),
+        formatarValorParaPlanilha(mes.resultado),
+        formatarValorParaPlanilha(mes.saldoFinal),
+      ),
+    ),
+    '',
+    ...secaoCategoriasPorMes('Entradas por categoria', entradasPorCategoria, meses),
+    '',
+    ...secaoCategoriasPorMes('Saídas por categoria', saidasPorCategoria, meses),
   ])
 }
 

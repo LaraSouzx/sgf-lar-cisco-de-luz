@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Lancamento } from '../types/lancamento'
 import type { Relatorio, RelatorioDoador } from './calcularRelatorio'
-import { gerarPdfDoacoes, gerarPdfRelatorio } from './gerarPdfRelatorio'
+import type { Comparativo } from './calcularComparativo'
+import { gerarPdfComparativo, gerarPdfDoacoes, gerarPdfRelatorio } from './gerarPdfRelatorio'
 
 const contexto = { geradoEm: '2026-09-23', usuario: 'maria@exemplo.com' }
 
@@ -77,6 +78,29 @@ describe('gerarPdfDoacoes', () => {
 
     expect(texto.startsWith('%PDF-')).toBe(true)
     for (const esperado of ['Total doado', 'Maria Silva', 'Mensalidade']) {
+      expect(texto).toContain(esperado)
+    }
+  })
+})
+
+describe('gerarPdfComparativo', () => {
+  const comparativo: Comparativo = {
+    ano: '2026',
+    meses: [
+      { mes: 1, entradas: 1000, saidas: 400, resultado: 600, saldoFinal: 600, variacaoEntradas: null, variacaoSaidas: null, emAndamento: false },
+    ],
+    entradasPorCategoria: [{ categoriaId: 'c1', categoriaNome: 'Doacao mensal', total: 1000, valoresPorMes: [1000] }],
+    saidasPorCategoria: [{ categoriaId: 'c2', categoriaNome: 'Conta de luz', total: 400, valoresPorMes: [400] }],
+  }
+
+  it('gera o PDF em paisagem com os totais e as categorias', async () => {
+    const pdf = await gerarPdfComparativo(comparativo, contexto)
+    const texto = textoDoPdf(pdf)
+
+    expect(texto.startsWith('%PDF-')).toBe(true)
+    // Paisagem: a página é mais larga (842) do que alta (595).
+    expect(texto).toMatch(/MediaBox \[0 0 841\.\d+ 595\.\d+\]/)
+    for (const esperado of ['Comparativo mensal', 'Janeiro', 'Doacao mensal', 'Conta de luz', 'Jan', 'Total']) {
       expect(texto).toContain(esperado)
     }
   })
