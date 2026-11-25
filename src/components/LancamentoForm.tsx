@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { FORMAS_DE_RECEBIMENTO, ROTULO_FORMA_RECEBIMENTO } from '../lib/formasDeRecebimento'
 import { TIPOS_ACEITOS, VALOR_MINIMO_COMPROVANTE } from '../lib/regrasDeComprovante'
 import { formatarValorEmReais } from '../hooks/formatacao'
 import {
@@ -8,7 +9,7 @@ import {
 } from '../hooks/validarLancamento'
 import type { Categoria } from '../types/categoria'
 import type { Doador } from '../types/doador'
-import type { Lancamento, TipoLancamento } from '../types/lancamento'
+import type { FormaRecebimento, Lancamento, TipoLancamento } from '../types/lancamento'
 import { classeBotao, classeCampo } from './estilos'
 
 type LancamentoFormProps = {
@@ -30,6 +31,7 @@ function formularioInicial(lancamento?: Lancamento, tipoInicial: TipoLancamento 
       categoriaId: '',
       descricao: '',
       doadorId: null,
+      formaRecebimento: null,
       arquivo: null,
       comprovanteAtual: null,
     }
@@ -41,6 +43,7 @@ function formularioInicial(lancamento?: Lancamento, tipoInicial: TipoLancamento 
     categoriaId: lancamento.categoriaId,
     descricao: lancamento.descricao,
     doadorId: lancamento.doadorId,
+    formaRecebimento: lancamento.formaRecebimento,
     arquivo: null,
     comprovanteAtual: lancamento.comprovanteUrl,
   }
@@ -65,8 +68,8 @@ export function LancamentoForm({
   }
 
   function trocarTipo(tipo: TipoLancamento) {
-    // A categoria escolhida só vale para um tipo, então volta para "escolha" ao trocar; doador só existe em entrada.
-    setFormulario((atual) => ({ ...atual, tipo, categoriaId: '', doadorId: null }))
+    // A categoria escolhida só vale para um tipo, então volta para "escolha" ao trocar; doador e forma de recebimento só existem em entrada.
+    setFormulario((atual) => ({ ...atual, tipo, categoriaId: '', doadorId: null, formaRecebimento: null }))
   }
 
   function removerArquivo() {
@@ -146,17 +149,32 @@ export function LancamentoForm({
           ))}
         </select>
       )}
+      {formulario.tipo === 'entrada' && (
+        <select
+          aria-label="Forma de recebimento"
+          value={formulario.formaRecebimento ?? ''}
+          onChange={(event) => atualizar('formaRecebimento', (event.target.value || null) as FormaRecebimento | null)}
+          className={`${classeCampo} sm:col-span-2`}
+        >
+          <option value="">Escolha a forma de recebimento</option>
+          {FORMAS_DE_RECEBIMENTO.map((forma) => (
+            <option key={forma} value={forma}>
+              {ROTULO_FORMA_RECEBIMENTO[forma]}
+            </option>
+          ))}
+        </select>
+      )}
       <input
         aria-label="Descrição"
         placeholder="Descrição"
         value={formulario.descricao}
         onChange={(event) => atualizar('descricao', event.target.value)}
-        className={`${classeCampo} ${formulario.tipo === 'entrada' ? 'sm:col-span-2' : 'sm:col-span-4'}`}
+        className={`${classeCampo} ${formulario.tipo === 'entrada' ? 'sm:col-span-6' : 'sm:col-span-4'}`}
       />
       <div className="flex flex-col gap-1.5 sm:col-span-6">
         <span className="text-xs font-medium text-[#4f5c4c]">
           Comprovante (foto ou PDF, até 5 MB). Obrigatório a partir de{' '}
-          {formatarValorEmReais(VALOR_MINIMO_COMPROVANTE)}.
+          {formatarValorEmReais(VALOR_MINIMO_COMPROVANTE)}, exceto em doações em dinheiro.
         </span>
         <div className="flex flex-wrap items-center gap-3">
           {/* O campo nativo é escondido: o botão de verdade é o rótulo, que abre o seletor de arquivos. */}
