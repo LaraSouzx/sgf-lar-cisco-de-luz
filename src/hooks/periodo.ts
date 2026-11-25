@@ -18,6 +18,24 @@ export function intervaloDoPeriodo(periodo: string) {
   return { dataInicio: `${periodo}-01`, dataFim: `${periodo}-${ultimoDia}` }
 }
 
+export const NOMES_DOS_MESES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+]
+
+// As três primeiras letras bastam em português (Jan, Fev, Mar...) e cabem nas colunas dos relatórios.
+export const abreviacaoDoMes = (mes: number) => NOMES_DOS_MESES[mes - 1].slice(0, 3)
+
 export function rotuloDoPeriodo(periodo: string) {
   const [ano, mes] = periodo.split('-')
   return mes ? `${mes}/${ano}` : ano
