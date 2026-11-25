@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext'
+import { useLogoutPorInatividade } from '../hooks/useLogoutPorInatividade'
 import { signOut } from '../services/authService'
 
 type NavItem = {
@@ -122,6 +123,7 @@ function nomeExibicao(email: string | undefined, nomeCompleto: unknown) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { session } = useAuthContext()
+  useLogoutPorInatividade(signOut)
   const nome = nomeExibicao(session?.user.email, session?.user.user_metadata?.nome_completo)
   const inicial = nome.charAt(0).toUpperCase()
   const [menuAberto, setMenuAberto] = useState(true)
