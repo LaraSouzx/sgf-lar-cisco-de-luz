@@ -27,14 +27,6 @@ describe('AppShell', () => {
     vi.mocked(authService.onAuthStateChange).mockReturnValue({ unsubscribe: vi.fn() } as never)
   })
 
-  it('links de telas que ainda não existem não são navegáveis', () => {
-    renderAppShell()
-
-    const configuracoes = screen.getByText('Configurações')
-    expect(configuracoes.tagName).toBe('SPAN')
-    expect(configuracoes).toHaveAttribute('aria-disabled', 'true')
-  })
-
   it('"Visão geral" navega para /', () => {
     renderAppShell()
 
@@ -65,5 +57,28 @@ describe('AppShell', () => {
       'aria-expanded',
       'false',
     )
+  })
+
+  it('botão Ajuda abre o modal com o e-mail de suporte, e Fechar o dispensa', async () => {
+    const user = userEvent.setup()
+    renderAppShell()
+
+    await user.click(screen.getByRole('button', { name: 'Ajuda' }))
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Encontrou algum problema no site')
+    expect(screen.getByRole('dialog')).toHaveTextContent('larasouzadev@gmail.com')
+    expect(screen.getByRole('link', { name: 'Enviar e-mail' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mailto:larasouzadev@gmail.com'),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Copiar' }))
+
+    expect(await navigator.clipboard.readText()).toBe('larasouzadev@gmail.com')
+    expect(screen.getByRole('button', { name: 'Copiado!' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Fechar' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

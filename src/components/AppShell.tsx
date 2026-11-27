@@ -3,12 +3,13 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext'
 import { useLogoutPorInatividade } from '../hooks/useLogoutPorInatividade'
 import { signOut } from '../services/authService'
+import { AjudaDialog } from './AjudaDialog'
 
+// Cada item do menu ou navega para uma tela ou executa uma ação
 type NavItem = {
   label: string
   icon: ReactNode
-  to?: string
-}
+} & ({ to: string; onClick?: never } | { onClick: () => void; to?: never })
 
 const iconVisaoGeral = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,12 +43,6 @@ const iconRelatorios = (
     <path d="M14 3v5h5M9 13h6M9 17h6" />
   </svg>
 )
-const iconConfiguracoes = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-  </svg>
-)
 const iconAjuda = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="9" />
@@ -74,27 +69,23 @@ const itensPrincipais: NavItem[] = [
   { label: 'Relatórios', icon: iconRelatorios, to: '/relatorios' },
 ]
 
-const itensOutros: NavItem[] = [
-  { label: 'Configurações', icon: iconConfiguracoes },
-  { label: 'Ajuda', icon: iconAjuda },
-]
-
 function ItemMenu({ item, menuAberto }: { item: NavItem; menuAberto: boolean }) {
   const location = useLocation()
   const classeBase = `flex items-center gap-3 h-11 rounded-[10px] text-sm font-medium no-underline ${
     menuAberto ? 'px-3.5' : 'w-11 justify-center px-0'
   }`
 
-  if (!item.to) {
+  if (item.onClick) {
     return (
-      <span
-        aria-disabled="true"
-        title={menuAberto ? 'Ainda não disponível' : item.label}
-        className={`${classeBase} text-[#8b968a] cursor-not-allowed`}
+      <button
+        type="button"
+        onClick={item.onClick}
+        title={menuAberto ? undefined : item.label}
+        className={`${classeBase} text-left text-[#3c463a] hover:bg-[#e9eee6]`}
       >
         {item.icon}
         {menuAberto && item.label}
-      </span>
+      </button>
     )
   }
 
@@ -129,6 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [menuAberto, setMenuAberto] = useState(true)
   // Em telas pequenas o menu vira uma gaveta sobre o conteúdo, aberta por este botão
   const [menuMobileAberto, setMenuMobileAberto] = useState(false)
+  const [ajudaAberta, setAjudaAberta] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-[#f4f7f1]">
@@ -190,20 +182,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               OUTROS
             </div>
           )}
-          {itensOutros.map((item) => (
-            <ItemMenu key={item.label} item={item} menuAberto={menuAberto} />
-          ))}
-          <button
-            type="button"
-            onClick={() => signOut()}
-            title={menuAberto ? undefined : 'Sair'}
-            className={`flex h-11 items-center gap-3 rounded-[10px] text-left text-sm font-medium text-[#3c463a] hover:bg-[#e9eee6] ${
-              menuAberto ? 'px-3.5' : 'w-11 justify-center px-0'
-            }`}
-          >
-            {iconSair}
-            {menuAberto && 'Sair'}
-          </button>
+          <ItemMenu
+            item={{ label: 'Ajuda', icon: iconAjuda, onClick: () => setAjudaAberta(true) }}
+            menuAberto={menuAberto}
+          />
+          <ItemMenu item={{ label: 'Sair', icon: iconSair, onClick: () => signOut() }} menuAberto={menuAberto} />
         </nav>
 
         <main className="flex min-w-0 flex-1 flex-col">
@@ -258,6 +241,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="flex-1 bg-[#e9eee6] p-6 md:p-8">{children}</div>
         </main>
+        {ajudaAberta && <AjudaDialog onFechar={() => setAjudaAberta(false)} />}
       </div>
     </div>
   )
