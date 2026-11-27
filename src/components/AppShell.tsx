@@ -190,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-22 shrink-0 items-center justify-between border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
+          <header className="flex h-22 shrink-0 items-center border-b border-[#e3e9df] bg-[#f4f7f1] px-6 md:px-8">
             <div className="flex items-center gap-3.5">
               <button
                 type="button"
@@ -210,32 +210,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <h1 className="m-0 text-[22px] font-semibold tracking-[-0.01em]">Olá, {nome}</h1>
                 <div className="text-sm text-[#4f5c4c]">Este é o resumo das finanças do Lar hoje</div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled
-                title="Ainda não disponível"
-                aria-label="Buscar lançamento"
-                className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-[#dfe6db] bg-white opacity-70"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141a14" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.5-3.5" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                disabled
-                title="Ainda não disponível"
-                aria-label="Avisos"
-                className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-[#dfe6db] bg-white opacity-70"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141a14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" />
-                  <path d="M10 21h4" />
-                </svg>
-              </button>
             </div>
           </header>
 
